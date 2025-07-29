@@ -3,7 +3,10 @@ import axios from 'axios';
 import { Modal, Button, Form, Alert } from 'react-bootstrap';
 import { Typeahead } from 'react-bootstrap-typeahead';
 import { FaEdit, FaTrash, FaPlus } from 'react-icons/fa';
-import 'react-datepicker/dist/react-datepicker.css';
+import { format } from 'date-fns';
+import { DayPicker } from 'react-day-picker';
+import 'react-day-picker/dist/style.css';
+import { isWithinInterval, parseISO } from 'date-fns';
 
 function Sales() {
     const [sales, setSales] = useState([]);
@@ -11,7 +14,6 @@ function Sales() {
     const [containers, setContainers] = useState([]);
     const [showModal, setShowModal] = useState(false);
     const [isEditing, setIsEditing] = useState(false);  
-
     const [editMode, setEditMode] = useState(false); // set false by default, true if testing
     const [selectedSalesIds, setSelectedSalesIds] = useState([]);
     const [checkAll, setCheckAll] = useState(false);
@@ -21,6 +23,22 @@ function Sales() {
     const [deleteSuccess, setDeleteSuccess] = useState(false);
     const [showSuccessModal, setShowSuccessModal] = useState(false);
     const [successMessage, setSuccessMessage] = useState('');
+
+    const [range, setRange] = useState({ from: undefined, to: undefined });
+    const [showDatePicker, setShowDatePicker] = useState(false);
+    const [startDate, setStartDate] = useState(null);
+    const [endDate, setEndDate] = useState(null);
+
+// const filteredSales =
+//   range?.from && range?.to
+//     ? sales.filter((sale) => {
+//         const saleDate = parseISO(sale.date);
+//         return isWithinInterval(saleDate, {
+//           start: range.from,
+//           end: range.to,
+//         });
+//       })
+//     : sales;
 
     const [currentSale, setCurrentSale] = useState({
       date: new Date().toISOString().split('T')[0],
@@ -115,6 +133,23 @@ useEffect(() => {
   // ===============================
   // HANDLERS
   // ===============================
+  const applyDateFilter = () => {
+    if (!startDate || !endDate) return;
+
+    const filtered = sales.filter(s => {
+      const saleDate = new Date(s.date);
+      return saleDate >= startDate && saleDate <= endDate;
+    });
+
+    setFilteredSales(filtered);
+  };
+
+  const clearFilter = () => {
+    setStartDate(null);
+    setEndDate(null);
+    setFilteredSales(sales);
+  };
+
   const handleShowAddModal = () => {
     setIsEditing(false);
     setCurrentSale({
@@ -346,65 +381,131 @@ const handleAddCustomer = async () => {
 //            RENDER
 // ===============================
 return (
-    <div style={{ padding: '20px' }}>
-      <h2>Sales</h2>
+  <div style={{ padding: '20px' }}>
+    <h2>Sales</h2>
 
+    <div className="d-flex justify-content-between align-items-end flex-wrap mb-3">
+      <div className="d-flex gap-2 flex-wrap">
+      {/* Add Sales Button*/}
       <Button variant="primary" onClick={handleShowAddModal}>Add Sale</Button>
+      {/* Add Multiple Sales Button*/}
       <Button
-          variant="secondary"
-          onClick={() => {
-            setImportProgress(0);  // reset progress
-            setShowMultiAddModal(true);
-          }}
-        >
-          Add Multiple Sales
-        </Button>
-        <Button
-          variant={editMode ? "danger" : "warning"}
-          className="ms-2"
-          onClick={() => {
-            setEditMode(!editMode);
-            setSelectedSalesIds([]);
-            setCheckAll(false);
-          }}
-        >
-          {editMode ? "Exit Edit Mode" : "Edit Mode"}
-        </Button>
+      variant="secondary"
+      onClick={() => {
+        setImportProgress(0);  // reset progress
+        setShowMultiAddModal(true);
+      }}
+    >
+      Add Multiple Sales
+      </Button>
+      {/* Edit Mode Buttons*/}
+      <Button
+      variant={editMode ? "danger" : "warning"}
+      className="ms-2"
+      onClick={() => {
+        setEditMode(!editMode);
+        setSelectedSalesIds([]);
+        setCheckAll(false);
+      }}
+    >
+      {editMode ? "Exit Edit Mode" : "Edit Mode"}
+      </Button>
 
-        {editMode && (
-          <Button
-            variant="secondary"
-            className="ms-2"
-            disabled={selectedSalesIds.length === 0 || deleting}
-            onClick={() => setShowDeleteSelectedModal(true)}
+      {editMode && (
+      <Button
+        variant="secondary"
+        className="ms-2"
+        disabled={selectedSalesIds.length === 0 || deleting}
+        onClick={() => setShowDeleteSelectedModal(true)}
+      >
+        {deleting ? 'Deleting...' : `Delete Selected (${selectedSalesIds.length})`}
+      </Button>
+      )}
+
+      {deleting && (
+      <div className="mt-3" style={{ width: '300px' }}>
+        <div className="progress">
+          <div
+            className="progress-bar bg-danger"
+            role="progressbar"
+            style={{ width: `${deleteProgress}%` }}
+            aria-valuenow={deleteProgress}
+            aria-valuemin="0"
+            aria-valuemax="100"
           >
-            {deleting ? 'Deleting...' : `Delete Selected (${selectedSalesIds.length})`}
-          </Button>
-        )}
-
-        {deleting && (
-          <div className="mt-3" style={{ width: '300px' }}>
-            <div className="progress">
-              <div
-                className="progress-bar bg-danger"
-                role="progressbar"
-                style={{ width: `${deleteProgress}%` }}
-                aria-valuenow={deleteProgress}
-                aria-valuemin="0"
-                aria-valuemax="100"
-              >
-                {deleteProgress}%
-              </div>
-            </div>
-            <div className="text-center mt-2">Deleting... Please wait.</div>
+            {deleteProgress}%
           </div>
-        )}
+        </div>
+        <div className="text-center mt-2">Deleting... Please wait.</div>
+      </div>
+      )}
 
-        {deleteSuccess && (
-          <Alert variant="success" className="mt-3">
-            Selected items deleted successfully!
-          </Alert>
-        )}
+      {deleteSuccess && (
+      <Alert variant="success" className="mt-3">
+        Selected items deleted successfully!
+      </Alert>
+      )}
+      </div>
+
+      <div style={{ position: 'relative' }}>
+    <Button
+      variant="outline-secondary"
+      onClick={() => setShowDatePicker(!showDatePicker)}
+    >
+      {range?.from && range?.to
+        ? `Filtered: ${range.from.toLocaleDateString()} - ${range.to.toLocaleDateString()}`
+        : 'Filter by Date'}
+    </Button>
+
+    {showDatePicker && (
+    <div
+      style={{
+        position: 'absolute',
+        zIndex: 1000,
+        top: '100%',
+        right: 0,
+        marginTop: '5px',
+        background: 'white',
+        boxShadow: '0 4px 8px rgba(0,0,0,0.1)',
+        borderRadius: '6px',
+        padding: '8px',
+      }}
+    >
+      <DayPicker
+        mode="range"
+        selected={range}
+        onSelect={(range) => {   
+          if (range){
+            setRange(range);
+    // Only hide if from and to are defined and different (true range selected)
+    if (range.from && range.to && range.from.getTime() !== range.to.getTime()) {
+      setShowDatePicker(false);
+    
+    }
+          }                   
+  }}
+        numberOfMonths={1}
+        defaultMonth={range?.from || undefined}
+      /> 
+    </div>    
+    )}
+
+    {(range.from || range.to) && (
+      <Button
+        variant="outline-danger"
+        onClick={() => setRange({ from: undefined, to: undefined })}
+      >
+        Clear Filters
+      </Button>
+    )}
+
+      </div>
+
+
+    </div>
+      
+      
+
 
 
  {/* ////////////////////////////// */}
@@ -452,6 +553,12 @@ return (
         </thead>
         <tbody>
             {sales
+            .filter(s => {
+              if (!range.from || !range.to) return true;
+              const saleDate = new Date(s.date);
+              return saleDate >= range.from && saleDate <= range.to;
+            })
+
             .sort((a, b) => new Date(a.date) - new Date(b.date))
               // .sort((a, b) => {
               //   // 1️⃣ Compare names (case-insensitive)
@@ -1113,7 +1220,7 @@ return (
              
 
 
-    </div>
+  </div>
   );
 }
 
