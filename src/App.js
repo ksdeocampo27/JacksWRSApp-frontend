@@ -6,6 +6,7 @@ import 'react-bootstrap-typeahead/css/Typeahead.css';
 import Dashboard from './pages/Dashboard';
 import Customers from './pages/Customers';
 import Sales from './pages/Sales';
+import Summary from './pages/Summary';
 import Inventory from './pages/Inventory';
 import InventoryDetails from './pages/InventoryDetails';
 import CustomerProfile from './pages/CustomerProfile';
@@ -20,6 +21,7 @@ function App() {
           <li><Link to="/">Dashboard</Link></li>
           <li><Link to="/customers">Customers</Link></li>
           <li><Link to="/sales">Sales</Link></li>
+          <li><Link to="/summary">Summary</Link></li>
           <li><Link to="/inventory">Inventory</Link></li>
         </ul>
       </div>
@@ -30,6 +32,7 @@ function App() {
           <Route path="/" element={<Dashboard />} />
           <Route path="/customers" element={<Customers />} />
           <Route path="/sales" element={<Sales />} />
+          <Route path="/summary" element={<Summary />} />
           <Route path="/inventory" element={<Inventory />} />
           <Route path="/inventory/:id" element={<InventoryDetails />} />
           <Route path="/customers/:id/profile" element={<CustomerProfile />} />

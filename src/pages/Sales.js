@@ -3,6 +3,7 @@ import axios from 'axios';
 import { Modal, Button, Form, Alert } from 'react-bootstrap';
 import { Typeahead } from 'react-bootstrap-typeahead';
 import { FaEdit, FaTrash, FaPlus } from 'react-icons/fa';
+import 'react-datepicker/dist/react-datepicker.css';
 
 function Sales() {
     const [sales, setSales] = useState([]);
@@ -11,7 +12,7 @@ function Sales() {
     const [showModal, setShowModal] = useState(false);
     const [isEditing, setIsEditing] = useState(false);  
 
-    const [editMode, setEditMode] = useState(false);
+    const [editMode, setEditMode] = useState(false); // set false by default, true if testing
     const [selectedSalesIds, setSelectedSalesIds] = useState([]);
     const [checkAll, setCheckAll] = useState(false);
     const [showDeleteSelectedModal, setShowDeleteSelectedModal] = useState(false);
@@ -341,9 +342,9 @@ const handleAddCustomer = async () => {
 
 
 
-  // ===============================
-  //            RENDER
-  // ===============================
+// ===============================
+//            RENDER
+// ===============================
 return (
     <div style={{ padding: '20px' }}>
       <h2>Sales</h2>
@@ -405,6 +406,11 @@ return (
           </Alert>
         )}
 
+
+ {/* ////////////////////////////// */}
+ {/* /////       TABLE        ///// */}
+ {/* ////////////////////////////// */}
+ 
       <table className="table table-hover mt-3">
         <thead>
           <tr>

@@ -247,7 +247,9 @@ function Customers() {
 
         {/*Table Body or Records*/}
         <tbody>
-        {customers.map(c => {
+        {customers
+        .sort((a, b) => a.name.localeCompare(b.name)) // 🔽 Sorts by name alphabetically
+        .map(c => {
           const isChecked = selectedIds.includes(c._id);
           return (
             <tr key={c._id}>
