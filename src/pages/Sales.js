@@ -477,11 +477,12 @@ return (
         onSelect={(range) => {   
           if (range){
             setRange(range);
-    // Only hide if from and to are defined and different (true range selected)
-    if (range.from && range.to && range.from.getTime() !== range.to.getTime()) {
-      setShowDatePicker(false);
-    
-    }
+
+            // Only hide if from and to are defined and different (true range selected)
+            // if (range.from && range.to && range.from.getTime() !== range.to.getTime()) {
+            //   setShowDatePicker(false);
+            
+            // }
           }                   
   }}
         numberOfMonths={1}

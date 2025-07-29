@@ -94,7 +94,8 @@ function Summary() {
           <tr>
             <th>Item</th>
             <th>Quantity</th>
-            <th>Total (₱)</th>
+            <th>Price per Unit</th>
+            <th>Total Amount(₱)</th>
           </tr>
         </thead>
         <tbody>
@@ -102,6 +103,7 @@ function Summary() {
             <tr key={item}>
               <td>{item}</td>
               <td>{data.quantity}</td>
+              <td className="text-muted">₱{(data.totalAmount / data.quantity).toFixed(2)}</td>
               <td>₱{data.totalAmount.toFixed(2)}</td>
             </tr>
           ))}
