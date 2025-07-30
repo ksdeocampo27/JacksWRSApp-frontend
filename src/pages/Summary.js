@@ -66,7 +66,7 @@ function Summary() {
 
 
   return (
-    <div className="p-4">
+    <div classname="p-4">
       <h1 classname = "mb-3">Summary</h1>
 
       <Form.Group controlId="monthSelect" className="mb-4" style={{ maxWidth: '300px' }}>
