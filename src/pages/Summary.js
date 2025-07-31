@@ -114,5 +114,5 @@ function Summary() {
     </div>
   );
 }
-Summary
+
 export default Summary;
