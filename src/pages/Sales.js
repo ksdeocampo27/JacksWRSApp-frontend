@@ -141,13 +141,13 @@ useEffect(() => {
       return saleDate >= startDate && saleDate <= endDate;
     });
 
-    setFilteredSales(filtered);
+    //setFilteredSales(filtered);
   };
 
   const clearFilter = () => {
     setStartDate(null);
     setEndDate(null);
-    setFilteredSales(sales);
+    //setFilteredSales(sales);
   };
 
   const handleShowAddModal = () => {
