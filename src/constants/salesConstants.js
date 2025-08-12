@@ -31,7 +31,7 @@ export const typeColors = {
 
 export const paymentMethodOptions = [
   {value: 'Cash', label: 'Cash', color: '#45d75bff'},
-  {value: 'Gcash', label: 'Gcash', color: '#00b3ffff'},
+  {value: 'GCash', label: 'GCash', color: '#00b3ffff'},
   {value: 'Marketing', label: 'Marketing', color: '#b255e3ff'},
   {value: 'Return', label: 'Return', color: '#e5d334ff'},
   // add other items as needed
@@ -39,7 +39,7 @@ export const paymentMethodOptions = [
 
 export const paymentMethodColors = {
   "Cash": "#45d75bff",   
-  "Gcash": "#00b3ffff",  
+  "GCash": "#00b3ffff",  
   "Marketing": "#b255e3ff",      
   "Return": "#e5d334ff",           
   // add other items as needed
