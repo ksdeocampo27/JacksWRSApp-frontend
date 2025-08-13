@@ -81,6 +81,7 @@ export default function AddEditExpenseModal({ show, onHide, fetchExpenses }) {
         }));
 
         onHide();
+        //TODO: clear text field again
         setShowImportResultModal(true);
       }
 
@@ -202,7 +203,7 @@ export default function AddEditExpenseModal({ show, onHide, fetchExpenses }) {
 }
 
 /** 
-    import React from "react";
+import React, { useState, useEffect } from "react";
 import { Modal, Button, Form } from "react-bootstrap";
 import axios from "axios";
 

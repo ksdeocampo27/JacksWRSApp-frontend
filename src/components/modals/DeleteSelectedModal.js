@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Modal, Button } from "react-bootstrap";
 import axios from "axios";
 
 export default function DeleteSelectedModal({
   show,
   onHide,
-  selectedIds,
+  selectedIds = [],
   entityName,
   deleteEndpoint,
   onDeleted,
@@ -16,28 +16,27 @@ export default function DeleteSelectedModal({
   const [deletedCount, setDeletedCount] = useState(0);
 
   const handleDelete = async () => {
+    if (selectedIds.length === 0) return; // Safety check
+
     try {
       setDeleting(true);
       setDeleteProgress(0);
-
-      // Save the count before clearing
       setDeletedCount(selectedIds.length);
 
       for (let i = 0; i < selectedIds.length; i++) {
         const id = selectedIds[i];
         await axios.delete(
-          `${process.env.REACT_APP_API_URL}${deleteEndpoint}${id}`
+          `${process.env.REACT_APP_API_URL}${deleteEndpoint}${deleteEndpoint.endsWith("/") ? "" : "/"}${id}`
         );
         setDeleteProgress(Math.round(((i + 1) / selectedIds.length) * 100));
       }
 
       onDeleted?.();
       onHide();
-      // Show success modal after delete
       setShowSuccessModal(true);
     } catch (err) {
       console.error(err);
-      alert(`Error deleting selected ${entityName}s.`);
+      alert(`Error deleting selected ${entityName}${selectedIds.length > 1 ? "s" : ""}.`);
     } finally {
       setDeleting(false);
       setDeleteProgress(0);
@@ -46,6 +45,7 @@ export default function DeleteSelectedModal({
 
   return (
     <>
+      {/* Confirm Delete Modal */}
       <Modal show={show} onHide={onHide} centered>
         <Modal.Header closeButton>
           <Modal.Title>Confirm Delete Selected</Modal.Title>
@@ -76,7 +76,7 @@ export default function DeleteSelectedModal({
         </Modal.Header>
         <Modal.Body>
           Successfully deleted {deletedCount} {entityName}
-          {deletedCount > 1 ? "s" : ""} record{deletedCount > 1 ? "s" : ""}!
+          {deletedCount > 1 ? "s" : ""}!
         </Modal.Body>
         <Modal.Footer>
           <Button

@@ -9,6 +9,7 @@ import ColoredSelect from "../components/ColoredSelect";
 import AddEditExpenseModal from "../components/modals/AddEditExpensesModal";
 import DeleteSelectedModal from "../components/modals/DeleteSelectedModal";
 import AddMultiExpensesModal from "../components/modals/AddMultiExpensesModal";
+import DeleteRecordModal from "../components/modals/DeleteRecordModal";
 
 import {
   categoryOptions,
@@ -30,8 +31,10 @@ function Expenses() {
     useState(false);
   const [showAddMultiExpensesModal, setShowAddMultiExpensesModal] =
     useState(false);
+  const [showDeleteRecordModal, setShowDeleteRecordModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [deleteSuccess, setDeleteSuccess] = useState(false);
+  const [recordToDelete, setRecordToDelete] = useState();
+  const [deleteProgress] = useState();
 
   const [currentExpense, setCurrentExpense] = useState({
     date: new Date().toISOString().split("T")[0],
@@ -142,30 +145,6 @@ function Expenses() {
         >
           {deleting ? "Deleting..." : `Delete Selected (${selectedIds.length})`}
         </Button>
-      )}
-
-      {deleting && (
-        <div className="mt-3" style={{ width: "300px" }}>
-          <div className="progress">
-            <div
-              className="progress-bar bg-danger"
-              role="progressbar"
-              style={{ width: `${deleteProgress}%` }}
-              aria-valuenow={deleteProgress}
-              aria-valuemin="0"
-              aria-valuemax="100"
-            >
-              {deleteProgress}%
-            </div>
-          </div>
-          <div className="text-center mt-2">Deleting... Please wait.</div>
-        </div>
-      )}
-
-      {deleteSuccess && (
-        <Alert variant="success" className="mt-3">
-          Selected items deleted successfully!
-        </Alert>
       )}
 
       {/* ////////////////////////////// */}
@@ -279,7 +258,11 @@ function Expenses() {
                   {/*======   STORE   ======*/}
                   <td>{e.store}</td>
                   {/*======   QUANTITY   ======*/}
-                   {e.quantity != null ? `${e.quantity} ${e?.unit || ""}` : "—"}
+                  <td>
+                    {e.quantity != null
+                      ? `${e.quantity} ${e?.unit || ""}`
+                      : "—"}
+                  </td>
                   {/*======   UNIT PRICE   ======*/}
                   <td className="text-muted fst-italic">
                     ₱
@@ -313,7 +296,10 @@ function Expenses() {
                         <Button
                           variant="link"
                           size="sm"
-                          onClick={() => handleDeleteClick(s)}
+                          onClick={() => {
+                            setRecordToDelete(e);
+                            setShowDeleteRecordModal(true);
+                          }}
                         >
                           <FaTrash color="red" />
                         </Button>
@@ -357,6 +343,16 @@ function Expenses() {
       <AddMultiExpensesModal
         show={showAddMultiExpensesModal}
         onHide={() => setShowAddMultiExpensesModal(false)}
+        fetchExpenses={fetchExpenses}
+      />
+
+      {/* DeleteRecordModal */}
+      <DeleteRecordModal
+        show={showDeleteRecordModal}
+        onHide={() => setShowDeleteRecordModal(false)}
+        entityName="expense"
+        deleteEndpoint="/api/expenses/"
+        recordToDelete={recordToDelete}
         fetchExpenses={fetchExpenses}
       />
     </div>
