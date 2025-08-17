@@ -9,6 +9,8 @@ import "react-day-picker/dist/style.css";
 import { isWithinInterval, parseISO } from "date-fns";
 import ColoredSelect from "../components/ColoredSelect";
 
+import AddEditSalesModal from "../components/modals/AddEditSalesModal";
+
 import {
   itemOptions,
   itemColors,
@@ -25,6 +27,7 @@ function Sales() {
   const [customers, setCustomers] = useState([]);
   const [containers, setContainers] = useState([]);
   const [showModal, setShowModal] = useState(false);
+  const [showAddEditSalesModal, setShowAddEditSalesModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editMode, setEditMode] = useState(false); // set false by default, true if testing
   const [selectedSalesIds, setSelectedSalesIds] = useState([]);
@@ -182,44 +185,43 @@ function Sales() {
   };
 
   const handleShowAddModal = () => {
-    setIsEditing(false);
-    setCurrentSale({
-      name: "",
-      date: new Date().toISOString().split("T")[0],
-      customerId: "",
-      containerId: "",
-      type: "Delivery",
-      item: "Refill (Slim 5gal)",
-      quantity: 1,
-      pricePerUnit: 0,
-      totalAmount: 0,
-      paymentMethod: "Cash",
-      status: "Paid",
-      remarks: "",
-    });
     setShowModal(true);
   };
 
+  const handleAddEditModal = (s = null) => {
+    if (s) {
+      //edit mode
+      console.log("Edit Mode");
+      setSaleToEditId(s._id);
+      setCurrentSale({
+        ...s,
+        date: s.date
+          ? new Date(s.date).toISOString().split("T")[0]
+          : new Date().toISOString().split("T")[0],
+      });
+    } else {
+      //add mode
+      console.log("Add Mode");
+      setCurrentSale({
+        name: "",
+        date: new Date().toISOString().split("T")[0],
+        customerId: "",
+        containerId: "",
+        type: "Delivery",
+        item: "Refill (Slim 5gal)",
+        quantity: 0,
+        pricePerUnit: 0,
+        totalAmount: 0,
+        paymentMethod: "Cash",
+        status: "Paid",
+        remarks: "",
+      });
+    }
+    console.log(currentSale._id);
+    setShowAddEditSalesModal(true);
+  };
+
   const handleShowEditModal = (sale) => {
-    setIsEditing(true);
-    setSaleToEditId(sale._id);
-    setCurrentSale({
-      date: sale.date
-        ? sale.date.substring(0, 10)
-        : new Date().toISOString().split("T")[0],
-      customerId: sale.customerId?._id || "",
-      customerName: sale.customerName || "",
-      type: sale.type,
-      item: sale.item || "",
-      quantity: sale.quantity,
-      pricePerUnit: sale.pricePerUnit || 0,
-      totalAmount: sale.totalAmount,
-      paymentMethod: sale.paymentMethod,
-      status: sale.status,
-      customerContainerQty: sale.customerContainerQty || 0,
-      containerIds: sale.containerIds?.map((c) => c._id || c) || [],
-      remarks: sale.remarks || "",
-    });
     setShowModal(true);
   };
 
@@ -502,9 +504,10 @@ function Sales() {
       <div className="d-flex justify-content-between align-items-end flex-wrap mb-3">
         <div className="d-flex gap-2 flex-wrap">
           {/* Add Sales Button*/}
-          <Button variant="primary" onClick={handleShowAddModal}>
+          <Button variant="primary" onClick={() => handleAddEditModal()}>
             Add Sale
           </Button>
+
           {/* Add Multiple Sales Button*/}
           <Button
             variant="secondary"
@@ -1161,10 +1164,11 @@ function Sales() {
                       <span className="fst-italic">{s.remarks}</span>
                     )}
                   </td>
-                  {/* =====   ACTION   =====*/}
+                  {/* =====   ACTIONS   =====*/}
                   {editMode && (
                     <>
                       <td>
+                        {/* =====   ACTION - ADD NEW CUSTOMER BUTTON  =====*/}
                         {!customers.some(
                           (c) =>
                             c.name.toLowerCase() ===
@@ -1182,15 +1186,15 @@ function Sales() {
                             <FaPlus /> {/* or your add icon */}
                           </Button>
                         )}
-
+                        {/* =====   ACTION - EDIT BUTTON  =====*/}
                         <Button
                           variant="link"
                           size="sm"
-                          onClick={() => handleShowEditModal(s)}
+                          onClick={() => handleAddEditModal(s)}
                         >
                           <FaEdit color="orange" />
                         </Button>
-
+                        {/* =====   ACTION - DELETE BUTTON  =====*/}
                         <Button
                           variant="link"
                           size="sm"
@@ -1211,295 +1215,17 @@ function Sales() {
       {/* /////       MODALS       ///// */}
       {/* ////////////////////////////// */}
 
-      {/* Add/Edit Modal */}
-      <Modal show={showModal} onHide={() => setShowModal(false)}>
-        <Modal.Header closeButton>
-          <Modal.Title>{isEditing ? "Edit Sale" : "Add Sale"}</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <Form>
-            <Form.Group>
-              <Form.Label>Date</Form.Label>
-              <Form.Control
-                type="date"
-                value={currentSale.date}
-                onChange={(e) =>
-                  setCurrentSale({ ...currentSale, date: e.target.value })
-                }
-              />
-            </Form.Group>
-
-            <Form.Group>
-              <Form.Label>Customer Name</Form.Label>
-              <Typeahead
-                id="customer-typeahead"
-                labelKey="name" // which property to display as label
-                options={customers} // array of customers from database
-                placeholder="Type customer name..."
-                allowNew // allows typing new names not in the list
-                newSelectionPrefix="New: "
-                selected={(() => {
-                  const found = customers.find(
-                    (c) => c._id === currentSale.customerId
-                  );
-                  if (found) {
-                    return [found]; // show existing customer as selected
-                  } else if (currentSale.customerName) {
-                    return [{ name: currentSale.customerName }]; // show typed name as selected
-                  } else {
-                    return []; // no selection
-                  }
-                })()}
-                onChange={(selected) => {
-                  if (selected.length > 0) {
-                    const sel = selected[0];
-                    if (sel._id) {
-                      setCurrentSale({
-                        ...currentSale,
-                        customerId: sel._id,
-                        customerName: sel.name,
-                      });
-                    } else if (sel.name) {
-                      // New typed name
-                      setCurrentSale({
-                        ...currentSale,
-                        customerId: null,
-                        customerName: sel.name,
-                      });
-                    } else if (typeof sel === "string") {
-                      // Typed raw string (edge case)
-                      setCurrentSale({
-                        ...currentSale,
-                        customerId: null,
-                        customerName: sel,
-                      });
-                    }
-                  } else {
-                    // If cleared selection
-                    setCurrentSale({
-                      ...currentSale,
-                      customerId: null,
-                      customerName: "",
-                    });
-                  }
-                }}
-              />
-            </Form.Group>
-
-            <Form.Group>
-              <Form.Label>Type</Form.Label>
-              <br />
-              <Button
-                value={currentSale.type}
-                variant={
-                  currentSale.type === "Walk-In" ? "success" : "outline-success"
-                }
-                onClick={() =>
-                  setCurrentSale({ ...currentSale, type: "Walk-In" })
-                }
-                className="me-2"
-              >
-                Walk-In
-              </Button>
-              <Button
-                variant={
-                  currentSale.type === "Delivery"
-                    ? "primary"
-                    : "outline-primary"
-                }
-                onClick={() =>
-                  setCurrentSale({ ...currentSale, type: "Delivery" })
-                }
-              >
-                Delivery
-              </Button>
-            </Form.Group>
-
-            <Form.Group>
-              <Form.Label>Item</Form.Label>
-              <div className="d-flex flex-wrap">
-                {[
-                  { label: "Refill (Slim 5gal)", bg: "primary" },
-                  { label: "Refill (Round 5gal)", bg: "info" },
-                  { label: "New (Slim 5gal)", bg: "success" },
-                  { label: "New (Round 5gal)", bg: "success" },
-                  { label: "Plan A - Standard Plan", bg: "danger" },
-                  { label: "Plan B - Family Plan", bg: "danger" },
-                  { label: "Plan C - Business Plan", bg: "danger" },
-                  { label: "Plan D - Enterprise Plan", bg: "danger" },
-                  { label: "Plan E - Custom Plan", bg: "danger" },
-                  { label: "Big Cap", bg: "warning" },
-                  { label: "Small Cap", bg: "warning" },
-                  { label: "Faucet", bg: "warning" },
-                  { label: "Others", bg: "warning" },
-                  { label: "Bottled Water (500mL)", bg: "purple" },
-                  { label: "Bottled Water (1000mL)", bg: "purple" },
-                  { label: "Dispenser", bg: "info" },
-                ].map((item) => {
-                  const isSelected = currentSale.item === item.label;
-                  return (
-                    <Button
-                      key={item.label}
-                      size="sm"
-                      variant={isSelected ? item.bg : `outline-${item.bg}`}
-                      className="me-2 mb-2"
-                      onClick={() =>
-                        setCurrentSale({ ...currentSale, item: item.label })
-                      }
-                      style={{
-                        backgroundColor:
-                          item.bg === "purple" && isSelected
-                            ? "#d6b3ff"
-                            : item.bg === "purple"
-                            ? "transparent"
-                            : undefined,
-                        borderColor:
-                          item.bg === "purple" ? "#d6b3ff" : undefined,
-                        color:
-                          item.bg === "purple" && isSelected
-                            ? "#5c2d91"
-                            : item.bg === "purple"
-                            ? "#5c2d91"
-                            : undefined,
-                      }}
-                    >
-                      {item.label}
-                    </Button>
-                  );
-                })}
-              </div>
-            </Form.Group>
-
-            <Form.Group>
-              <Form.Label>Quantity</Form.Label>
-              <Form.Control
-                type="number"
-                value={currentSale.quantity}
-                onChange={(e) =>
-                  setCurrentSale({
-                    ...currentSale,
-                    quantity: Number(e.target.value),
-                  })
-                }
-              />
-            </Form.Group>
-
-            <Form.Group>
-              <Form.Label>Total Amount</Form.Label>
-              <Form.Control
-                type="number"
-                value={currentSale.totalAmount}
-                onChange={(e) =>
-                  setCurrentSale({
-                    ...currentSale,
-                    totalAmount: Number(e.target.value),
-                  })
-                }
-              />
-            </Form.Group>
-
-            <Form.Group>
-              <Form.Label>Payment Method</Form.Label>
-              <Form.Select
-                value={currentSale.paymentMethod}
-                onChange={(e) =>
-                  setCurrentSale({
-                    ...currentSale,
-                    paymentMethod: e.target.value,
-                  })
-                }
-              >
-                <option>Cash</option>
-                <option>GCash</option>
-                <option>Free</option>
-              </Form.Select>
-            </Form.Group>
-
-            <Form.Group>
-              <Form.Label>Status</Form.Label>
-              <Form.Select
-                value={currentSale.status}
-                onChange={(e) =>
-                  setCurrentSale({ ...currentSale, status: e.target.value })
-                }
-              >
-                <option>Paid</option>
-                <option>Unpaid</option>
-                <option>Free</option>
-              </Form.Select>
-            </Form.Group>
-
-            <Form.Group>
-              <Form.Label>Containers</Form.Label>
-              <div className="d-flex align-items-center">
-                {/* Owned qty input */}
-                <div className="me-2 d-flex align-items-center">
-                  <Form.Control
-                    type="number"
-                    min="0"
-                    placeholder="Owned"
-                    value={currentSale.customerContainerQty}
-                    onChange={(e) =>
-                      setCurrentSale({
-                        ...currentSale,
-                        customerContainerQty: Number(e.target.value),
-                      })
-                    }
-                    style={{ width: "100px" }}
-                  />
-                </div>
-
-                {/* Select containers Typeahead */}
-                <div style={{ flex: 1 }}>
-                  <Typeahead
-                    id="container-typeahead"
-                    labelKey={(option) => `${option.id} - ${option.name}`}
-                    options={containers}
-                    placeholder="Select containers..."
-                    multiple
-                    selected={containers.filter((c) =>
-                      currentSale.containerIds?.includes(c._id)
-                    )}
-                    onChange={(selected) => {
-                      setCurrentSale({
-                        ...currentSale,
-                        containerIds: selected.map((s) => s._id),
-                      });
-                    }}
-                  />
-                </div>
-              </div>
-            </Form.Group>
-
-            <Form.Group>
-              <Form.Label>Remarks</Form.Label>
-              <Form.Control
-                as="textarea"
-                rows={2}
-                value={currentSale.remarks}
-                onChange={(e) =>
-                  setCurrentSale({ ...currentSale, remarks: e.target.value })
-                }
-              />
-            </Form.Group>
-          </Form>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowModal(false)}>
-            Cancel
-          </Button>
-          <Button
-            variant="primary"
-            onClick={() => {
-              handleSaveSale();
-              console.log("currentSale.containerIds", currentSale.containerIds);
-              console.log("containers", containers);
-            }}
-          >
-            Save
-          </Button>
-        </Modal.Footer>
-      </Modal>
+      {/* AddEditSalesModal */}
+      <AddEditSalesModal
+        show={showAddEditSalesModal}
+        onHide={() => setShowAddEditSalesModal(false)}
+        currentSale={currentSale}
+        setCurrentSale={setCurrentSale}
+        isEditing={isEditing}
+        fetchSales={fetchSales}
+        customers={customers}
+        containers={containers}
+      />
 
       {/* Delete Confirmation Modal */}
       <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)}>

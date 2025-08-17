@@ -71,7 +71,6 @@ function Expenses() {
       // Edit mode
       setIsEditing(true);
       setExpenseToEditId(e._id);
-      console.log(e);
       setCurrentExpense({
         ...e,
         date: e.date
@@ -92,7 +91,6 @@ function Expenses() {
         remarks: "",
       });
     }
-
     setShowAddEditExpensesModal(true);
   };
   // ================================
