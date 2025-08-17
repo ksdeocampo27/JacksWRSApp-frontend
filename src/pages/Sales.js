@@ -193,7 +193,6 @@ function Sales() {
   const handleAddEditModal = (s = null) => {
     if (s) {
       //edit mode
-      console.log("Edit Mode");
       setSaleToEditId(s._id);
       setCurrentSale({
         ...s,
@@ -203,7 +202,6 @@ function Sales() {
       });
     } else {
       //add mode
-      console.log("Add Mode");
       setCurrentSale({
         name: "",
         date: new Date().toISOString().split("T")[0],
@@ -219,7 +217,6 @@ function Sales() {
         remarks: "",
       });
     }
-    console.log(currentSale._id);
     setShowAddEditSalesModal(true);
   };
 
@@ -756,10 +753,10 @@ function Sales() {
                         }
                         placeholder="Select..." // only shows if defaultValue is null
                         onChange={(selected) => {
-                          console.log(`Selected: ${selected.value}`);
-                          console.log(
-                            `Setting selected value [${selected.value}] to _id:${s._id}, customerName:${s.customerName}, type:${s.type}`
-                          );
+                          // console.log(`Selected: ${selected.value}`);
+                          // console.log(
+                          //   `Setting selected value [${selected.value}] to _id:${s._id}, customerName:${s.customerName}, type:${s.type}`
+                          // );
                           handleEditedSales(s._id, "type", selected.value, s);
                         }}
                       />
@@ -792,10 +789,10 @@ function Sales() {
                         }
                         placeholder="Select..." // only shows if defaultValue is null
                         onChange={(selected) => {
-                          console.log(`Selected: ${selected.value}`);
-                          console.log(
-                            `Setting selected value [${selected.value}] to _id:${s._id}, customerName:${s.customerName}, item:${s.item}`
-                          );
+                          // console.log(`Selected: ${selected.value}`);
+                          // console.log(
+                          //   `Setting selected value [${selected.value}] to _id:${s._id}, customerName:${s.customerName}, item:${s.item}`
+                          // );
                           handleEditedSales(s._id, "item", selected.value, s);
                         }}
                       />
@@ -884,10 +881,10 @@ function Sales() {
                         }
                         placeholder="Select..." // only shows if defaultValue is null
                         onChange={(selected) => {
-                          console.log(`Selected: ${selected.value}`);
-                          console.log(
-                            `Setting selected value [${selected.value}] to _id:${s._id}, customerName:${s.customerName}, paymentMethod:${s.paymentMethod}`
-                          );
+                          // console.log(`Selected: ${selected.value}`);
+                          // console.log(
+                          //   `Setting selected value [${selected.value}] to _id:${s._id}, customerName:${s.customerName}, paymentMethod:${s.paymentMethod}`
+                          // );
                           handleEditedSales(
                             s._id,
                             "paymentMethod",
@@ -926,10 +923,10 @@ function Sales() {
                         }
                         placeholder="Select..." // only shows if defaultValue is null
                         onChange={(selected) => {
-                          console.log(`Selected: ${selected.value}`);
-                          console.log(
-                            `Setting selected value [${selected.value}] to _id:${s._id}, customerName:${s.customerName}, statusOption:${s.status}`
-                          );
+                          // console.log(`Selected: ${selected.value}`);
+                          // console.log(
+                          //   `Setting selected value [${selected.value}] to _id:${s._id}, customerName:${s.customerName}, statusOption:${s.status}`
+                          // );
                           handleEditedSales(s._id, "status", selected.value, s);
                         }}
                       />
@@ -1383,29 +1380,4 @@ function Sales() {
 
 export default Sales;
 
-/*
-2025-07-18;John Cruz;Delivery;Refill (Slim 5gal);3;75;Cash;Paid;z2,S001;Morning delivery
-2025-07-18;Maria Santos;Walk-In;Refill (Round 5gal);2;50;GCash;Paid;z1,S002;Regular customer
-2025-07-18;Alex Dela Cruz;Delivery;New (Slim 5gal);1;200;Cash;Paid;S003;First time order
-2025-07-18;Jenny Lopez;Walk-In;New (Round 5gal);1;220;Cash;Paid;z1;Bought new round container
-2025-07-18;Mark Reyes;Delivery;Refill (Slim 5gal);5;125;GCash;Paid;z3,S004,S005;Monthly refill
-2025-07-18;Louie Mendoza;Walk-In;Refill (Round 5gal);4;100;Cash;Paid;z2,S006,S007;Walk-In refill
-2025-07-18;Cathy Villanueva;Delivery;Plan A - Standard Plan;1;350;GCash;Paid;;Subscribed to Plan A
-2025-07-18;Ryan Tan;Walk-In;Plan B - Family Plan;1;500;Cash;Paid;;Subscribed to Plan B
-2025-07-18;Mikaela Lim;Delivery;Big Cap;2;40;Cash;Paid;;Bought extra caps
-2025-07-18;Chris Uy;Walk-In;Small Cap;3;30;GCash;Paid;;Bought small caps
-2025-07-18;Daryl Ong;Delivery;Faucet;1;50;Cash;Paid;;Bought faucet
-2025-07-18;Shiela Gomez;Walk-In;Bottled Water (500mL);10;150;GCash;Paid;;Bought bottled water
-2025-07-18;Aaron Perez;Delivery;Bottled Water (1000mL);5;125;Cash;Paid;;Ordered bottled water
-2025-07-18;Regine Velasquez;Walk-In;Dispenser;1;1200;GCash;Paid;;Bought dispenser
-2025-07-18;Janine Gutierrez;Delivery;Refill (Slim 5gal);2;50;Cash;Paid;z1,S008;Regular delivery
-2025-07-18;Enrique Gil;Walk-In;New (Slim 5gal);1;200;Cash;Paid;S009;Bought new slim container
-2025-07-18;Liza Soberano;Delivery;Plan C - Business Plan;1;800;GCash;Paid;;Subscribed to Plan C
-2025-07-18;Daniel Padilla;Walk-In;Plan D - Enterprise Plan;1;1500;Cash;Paid;;Subscribed to Plan D
-2025-07-18;Kathryn Bernardo;Delivery;Plan E - Custom Plan;1;2000;GCash;Paid;;Subscribed to Plan E
-2025-07-18;Piolo Pascual;Walk-In;Refill (Round 5gal);3;75;Cash;Paid;z2,S010;Walk-In refill
-2025-07-19;NoRecord;Delivery;Refill (Slim 5gal);3;75;Cash;Paid;z2,S001,S002;First delivery this week
-2025-07-18;Maria Santos;Walk-In;Refill (Round 5gal);2;50;GCash;Paid;z1,S003;Bought bottled water
-2025-07-17;Pedro Reyes;Delivery;Dispenser;1;25;Cash;Unpaid;S004;Pending payment
 
-*/

@@ -35,7 +35,7 @@ export default function AddEditSalesModal({
 
       if (isEditing) {
         await axios.put(
-          `${process.env.REACT_APP_API_URL}/api/sales/${saleToEditId}`,
+          `${process.env.REACT_APP_API_URL}/api/sales/${currentSale._id}`,
           saleToSave
         );
       } else {
@@ -336,8 +336,6 @@ export default function AddEditSalesModal({
             variant="primary"
             onClick={() => {
               handleSave();
-              console.log("currentSale.containerIds", currentSale.containerIds);
-              console.log("containers", containers);
             }}
           >
             Save

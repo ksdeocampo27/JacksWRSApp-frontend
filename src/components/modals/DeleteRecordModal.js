@@ -20,7 +20,6 @@ export default function DeleteRecordModal({
           await axios.delete(
             `${process.env.REACT_APP_API_URL}${deleteEndpoint}${recordToDelete._id}`
           );
-          onHide
           //setRecordToDelete(null);
           fetchExpenses();
           onHide();
