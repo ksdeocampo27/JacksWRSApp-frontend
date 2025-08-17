@@ -10,6 +10,7 @@ import { isWithinInterval, parseISO } from "date-fns";
 import ColoredSelect from "../components/ColoredSelect";
 
 import AddEditSalesModal from "../components/modals/AddEditSalesModal";
+import AddMultiSalesModal from "../components/modals/AddMultiSalesModal";
 
 import {
   itemOptions,
@@ -28,6 +29,7 @@ function Sales() {
   const [containers, setContainers] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [showAddEditSalesModal, setShowAddEditSalesModal] = useState(false);
+  const [showAddMultiSalesModal, setShowAddMultiSalesModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editMode, setEditMode] = useState(false); // set false by default, true if testing
   const [selectedSalesIds, setSelectedSalesIds] = useState([]);
@@ -277,112 +279,7 @@ function Sales() {
     }
   };
 
-  const handleMultiSalesImport = async () => {
-    if (!multiSalesInput) {
-      alert("Please enter sales records first.");
-      return;
-    }
 
-    let importing = true; // 🔑 local synchronous flag to avoid React async delays
-
-    const lines = multiSalesInput.trim().split("\n");
-    let successCount = 0;
-
-    try {
-      console.log("Starting import...");
-      for (let i = 0; i < lines.length; i++) {
-        if (!importing) {
-          console.log("Import stopped by user.");
-          break;
-        }
-
-        const line = lines[i];
-        const [
-          date,
-          customerName,
-          type,
-          item,
-          quantity,
-          totalAmount,
-          paymentMethod,
-          status,
-          containersField,
-          remarks,
-        ] = line.split(";").map((f) => f.trim());
-
-        // Process containers field
-        let customerContainerQty = 0;
-        let containerIds = [];
-        if (containersField) {
-          const containersArray = containersField
-            .split(",")
-            .map((c) => c.trim());
-          containersArray.forEach((c) => {
-            if (c.toLowerCase().startsWith("z")) {
-              customerContainerQty = parseInt(c.substring(1)) || 0;
-            } else {
-              const containerObj = containers.find(
-                (cont) => cont.id === c || cont.name === c || cont._id === c
-              );
-              if (containerObj) {
-                containerIds.push(containerObj._id);
-              } else {
-                containerIds.push(c);
-              }
-            }
-          });
-        }
-
-        // Calculate
-        const qty = parseInt(quantity);
-        const total = parseFloat(totalAmount);
-        const pricePerUnit = qty !== 0 ? total / qty : 0;
-
-        const customer = customers.find(
-          (c) => c.name.toLowerCase() === customerName.toLowerCase()
-        );
-
-        const sale = {
-          date: date || new Date().toISOString().split("T")[0],
-          customerId: customer ? customer._id : null,
-          customerName: customer ? customer.name : customerName,
-          type: type || "Delivery",
-          item: item || "",
-          quantity: qty || 1,
-          totalAmount: total || 0,
-          pricePerUnit: pricePerUnit || 0,
-          paymentMethod: paymentMethod || "Cash",
-          status: status || "Paid",
-          customerContainerQty,
-          containerIds,
-          remarks: remarks || "",
-        };
-
-        await axios.post(`${process.env.REACT_APP_API_URL}/api/sales`, sale);
-
-        successCount++;
-
-        // Update progress bar
-        setImportProgress(Math.round(((i + 1) / lines.length) * 100));
-      }
-
-      // Show success modal if all completed
-      if (successCount === lines.length) {
-        setImportResult((prev) => ({
-          ...prev,
-          successCount,
-        }));
-
-        setShowMultiAddModal(false);
-        setShowImportResultModal(true);
-      }
-
-      fetchSales();
-    } catch (err) {
-      console.error(err);
-      alert("Error importing sales. Check console for details.");
-    }
-  };
 
   const handleAddCustomer = async () => {
     try {
@@ -512,8 +409,9 @@ function Sales() {
           <Button
             variant="secondary"
             onClick={() => {
-              setImportProgress(0); // reset progress
-              setShowMultiAddModal(true);
+              setShowAddMultiSalesModal(true);
+              // setImportProgress(0); // reset progress
+              // setShowMultiAddModal(true);
             }}
           >
             Add Multiple Sales
@@ -1243,112 +1141,14 @@ function Sales() {
         </Modal.Footer>
       </Modal>
 
-      {/* Add Multi Sales Modal */}
-      <Modal
-        show={showMultiAddModal}
-        onHide={() => setShowMultiAddModal(false)}
-      >
-        <Modal.Header closeButton>
-          <Modal.Title>Add Multiple Sales</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <Form>
-            <Form.Group>
-              <Form.Label>
-                <strong>Enter multiple sales.</strong>
-                <br />- one per line
-                <br />- semicolon-separated fields
-                <br />
-                <strong>Format:</strong>
-                <br />
-                date;customer name;type;item;quantity;total amount;payment
-                method;status;containers;remarks
-                <br />
-                <strong>Example:</strong>
-                <br />
-                2025-07-18;John Cruz;Delivery;Refill (Slim
-                5gal);3;75;Cash;Paid;z2,S001;Morning delivery
-                <br />
-                2025-07-18;Maria Santos;Walk-in;Refill (Round
-                5gal);2;50;GCash;Paid;z1,S002;Regular customer
-              </Form.Label>
-              {importProgress > 0 && (
-                <div className="my-2">
-                  <div className="progress">
-                    <div
-                      className="progress-bar progress-bar-striped progress-bar-animated"
-                      role="progressbar"
-                      style={{ width: `${importProgress}%` }}
-                      aria-valuenow={importProgress}
-                      aria-valuemin="0"
-                      aria-valuemax="100"
-                    >
-                      {importProgress}%
-                    </div>
-                  </div>
-                </div>
-              )}
-              <Form.Control
-                as="textarea"
-                rows={10}
-                value={multiSalesInput}
-                onChange={(e) => setMultiSalesInput(e.target.value)}
-              />
-            </Form.Group>
-            <Button
-              variant="primary"
-              className="mt-2"
-              onClick={handleMultiSalesImport}
-            >
-              Import Sales
-            </Button>
-          </Form>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button
-            variant="secondary"
-            onClick={() => setShowMultiAddModal(false)}
-          >
-            Close
-          </Button>
-        </Modal.Footer>
-      </Modal>
-
-      {/* Multi Add Result Modal */}
-      <Modal
-        show={showImportResultModal}
-        onHide={() => setShowImportResultModal(false)}
-      >
-        <Modal.Header closeButton>
-          <Modal.Title>Import Result</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          {importResult.failedLine ? (
-            <>
-              <p>✅ Successfully added: {importResult.successCount}</p>
-              <p>❌ Failed at line: {importResult.failedLine}</p>
-              <p>Error: {importResult.errorMessage}</p>
-            </>
-          ) : (
-            <p>
-              ✅ All records successfully imported! Total added:{" "}
-              {importResult.successCount}
-            </p>
-          )}
-        </Modal.Body>
-        <Modal.Footer>
-          <Button
-            variant="primary"
-            onClick={() => {
-              setShowImportResultModal(false);
-              setShowMultiAddModal(false);
-              setImportProgress(0);
-            }}
-          >
-            Close
-          </Button>
-        </Modal.Footer>
-      </Modal>
+      {/* AddMultiSalesModal */}
+      <AddMultiSalesModal
+        show={showAddMultiSalesModal}
+        onHide={() => setShowAddMultiSalesModal(false)}
+        fetchSales={fetchSales}
+        containers={containers}
+        customers={customers}
+      />
 
       {/* Add Delete Selected Modal */}
       <Modal

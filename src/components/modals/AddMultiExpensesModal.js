@@ -5,7 +5,7 @@ import axios from "axios";
 export default function AddEditExpenseModal({ show, onHide, fetchExpenses }) {
   // constants
   const [importProgress, setImportProgress] = useState(0);
-  const [multiSalesInput, setMultiSalesInput] = useState("");
+  const [multiExpensesInput, setMultiExpensesInput] = useState("");
   const [showImportResultModal, setShowImportResultModal] = useState(false);
   const [importResult, setImportResult] = useState({
     successCount: 0,
@@ -13,15 +13,15 @@ export default function AddEditExpenseModal({ show, onHide, fetchExpenses }) {
     errorMessage: "",
   });
   // handlers
-  const handleMultiSalesImport = async () => {
-    if (!multiSalesInput) {
-      alert("Please enter sales records first.");
+  const handleMultiExpensesImport = async () => {
+    if (!multiExpensesInput) {
+      alert("Please enter expenses records first.");
       return;
     }
 
     let importing = true; // 🔑 local synchronous flag to avoid React async delays
 
-    const lines = multiSalesInput.trim().split("\n");
+    const lines = multiExpensesInput.trim().split("\n");
     let successCount = 0;
 
     try {
@@ -142,15 +142,15 @@ export default function AddEditExpenseModal({ show, onHide, fetchExpenses }) {
               <Form.Control
                 as="textarea"
                 rows={10}
-                value={multiSalesInput}
-                onChange={(e) => setMultiSalesInput(e.target.value)}
+                value={multiExpensesInput}
+                onChange={(e) => setMultiExpensesInput(e.target.value)}
               />
             </Form.Group>
 
             <Button
               variant="primary"
               className="mt-2"
-              onClick={handleMultiSalesImport}
+              onClick={handleMultiExpensesImport}
             >
               Import Sales
             </Button>
