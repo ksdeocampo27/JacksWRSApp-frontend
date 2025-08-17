@@ -2,7 +2,13 @@ import React, { useState, useEffect } from "react";
 import { Modal, Button, Form } from "react-bootstrap";
 import axios from "axios";
 
-export default function AddMultiSalesModal({ show, onHide, fetchSales, containers, customers }) {
+export default function AddMultiSalesModal({
+  show,
+  onHide,
+  fetchSales,
+  containers,
+  customers,
+}) {
   // constants
   const [importProgress, setImportProgress] = useState(0);
   const [multiSalesInput, setMultiSalesInput] = useState("");
@@ -51,16 +57,44 @@ export default function AddMultiSalesModal({ show, onHide, fetchSales, container
         let customerContainerQty = 0;
         let containerIds = [];
         if (containersField) {
+          // Splits containers
           const containersArray = containersField
             .split(",")
             .map((c) => c.trim());
           containersArray.forEach((c) => {
             if (c.toLowerCase().startsWith("z")) {
+              // If container starts with "Z" or "z"
               customerContainerQty = parseInt(c.substring(1)) || 0;
             } else {
+              // If container is Slim/Round/Dispenser
+
+              // Extract number (XXX part)
+              const match = c.match(/\d+/); // looks for digits
+              const extractedNumber = match ? parseInt(match[0], 10) : null;
+
+              // Match containerType with inventory.Type
+              let containerType = "";
+
+              if (item.toLowerCase().includes("slim")) {
+                containerType = "Slim";
+              } else if (item.toLowerCase().includes("round")) {
+                containerType = "Round";
+              } else if (item.toLowerCase().includes("dispenser")) {
+                containerType = "Dispenser";
+              } else {
+                console.error(
+                  `Cannot match containerType <${containerType}> with item <${item}>`
+                );
+              }
+
+              // Find extracted number in containers.id
               const containerObj = containers.find(
-                (cont) => cont.id === c || cont.name === c || cont._id === c
+                (cont) =>
+                  cont.type.toLowerCase() === containerType.toLowerCase() &&
+                  cont.id === extractedNumber
               );
+
+              // Push the founded container into the record
               if (containerObj) {
                 containerIds.push(containerObj._id);
               } else {
@@ -182,10 +216,7 @@ export default function AddMultiSalesModal({ show, onHide, fetchSales, container
           </Form>
         </Modal.Body>
         <Modal.Footer>
-          <Button
-            variant="secondary"
-            onClick={() => onHide()}
-          >
+          <Button variant="secondary" onClick={() => onHide()}>
             Close
           </Button>
         </Modal.Footer>
