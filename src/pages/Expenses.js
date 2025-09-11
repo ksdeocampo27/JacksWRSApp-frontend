@@ -93,8 +93,9 @@ function Expenses() {
     }
     setShowAddEditExpensesModal(true);
   };
+
   // ================================
-  // RENDER JSX
+  //          RENDER JSX
   // ================================
   return (
     <div style={{ padding: "20px" }}>

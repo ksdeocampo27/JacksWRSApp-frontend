@@ -11,6 +11,7 @@ import ColoredSelect from "../components/ColoredSelect";
 
 import AddEditSalesModal from "../components/modals/AddEditSalesModal";
 import AddMultiSalesModal from "../components/modals/AddMultiSalesModal";
+import AddEditCustomerModal from "../components/modals/AddEditCustomerModal";
 
 import {
   itemOptions,
@@ -30,6 +31,8 @@ function Sales() {
   const [showModal, setShowModal] = useState(false);
   const [showAddEditSalesModal, setShowAddEditSalesModal] = useState(false);
   const [showAddMultiSalesModal, setShowAddMultiSalesModal] = useState(false);
+  const [showAddEditCustomerModal, setShowAddEditCustomerModal] =
+    useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editMode, setEditMode] = useState(false); // set false by default, true if testing
   const [selectedSalesIds, setSelectedSalesIds] = useState([]);
@@ -49,17 +52,6 @@ function Sales() {
   const [editedSales, setEditedSales] = useState({});
   const [editableSales, setEditableSales] = useState([]);
 
-  // const filteredSales =
-  //   range?.from && range?.to
-  //     ? sales.filter((sale) => {
-  //         const saleDate = parseISO(sale.date);
-  //         return isWithinInterval(saleDate, {
-  //           start: range.from,
-  //           end: range.to,
-  //         });
-  //       })
-  //     : sales;
-
   const [currentSale, setCurrentSale] = useState({
     date: new Date().toISOString().split("T")[0],
     customerId: "",
@@ -77,16 +69,6 @@ function Sales() {
   const [saleToEditId, setSaleToEditId] = useState(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [saleToDelete, setSaleToDelete] = useState(null);
-  const [showMultiAddModal, setShowMultiAddModal] = useState(false);
-  const [multiSalesInput, setMultiSalesInput] = useState("");
-
-  const [importProgress, setImportProgress] = useState(0);
-  const [showImportResultModal, setShowImportResultModal] = useState(false);
-  const [importResult, setImportResult] = useState({
-    successCount: 0,
-    failedLine: null,
-    errorMessage: "",
-  });
 
   const [currentSaleId, setCurrentSaleId] = useState(null);
   const [showAddCustomerModal, setShowAddCustomerModal] = useState(false);
@@ -99,6 +81,26 @@ function Sales() {
     birthday: "",
     remarks: "",
   });
+
+  // Calculate paginated data
+  //const [filterType, setFilterType] = useState("Slim");
+  const [currentPage, setCurrentPage] = useState(1);
+  const recordsPerPage = 100;
+  //const filteredSales = sales.filter((s) => s.type === filterType);
+  //const indexOfLastRecord = currentPage * recordsPerPage;
+  //const indexOfFirstRecord = indexOfLastRecord - recordsPerPage;
+  // const currentRecords = filteredSales.slice(
+  //   indexOfFirstRecord,
+  //   indexOfLastRecord
+  // );
+  //const totalPages = Math.ceil(filteredSales.length / recordsPerPage);
+
+  // Build unique date pages
+  const datePages = [
+    ...new Set(sales.map((s) => new Date(s.date).toDateString())),
+  ].sort((a, b) => new Date(a) - new Date(b));
+
+  const currentDate = datePages[currentPage];
 
   // ===============================
   // LOAD SALES & CUSTOMERS
@@ -171,24 +173,21 @@ function Sales() {
   // ===============================
   // HANDLERS
   // ===============================
-  const applyDateFilter = () => {
-    if (!startDate || !endDate) return;
-    const filtered = sales.filter((s) => {
-      const saleDate = new Date(s.date);
-      return saleDate >= startDate && saleDate <= endDate;
-    });
-    //setFilteredSales(filtered);
-  };
 
-  const clearFilter = () => {
-    setStartDate(null);
-    setEndDate(null);
-    //setFilteredSales(sales);
-  };
+  // const applyDateFilter = () => {
+  //   if (!startDate || !endDate) return;
+  //   const filtered = sales.filter((s) => {
+  //     const saleDate = new Date(s.date);
+  //     return saleDate >= startDate && saleDate <= endDate;
+  //   });
+  //   //setFilteredSales(filtered);
+  // };
 
-  const handleShowAddModal = () => {
-    setShowModal(true);
-  };
+  // const clearFilter = () => {
+  //   setStartDate(null);
+  //   setEndDate(null);
+  //   //setFilteredSales(sales);
+  // };
 
   const handleAddEditModal = (s = null) => {
     if (s) {
@@ -220,43 +219,43 @@ function Sales() {
     setShowAddEditSalesModal(true);
   };
 
-  const handleShowEditModal = (sale) => {
-    setShowModal(true);
-  };
+  // const handleShowEditModal = (sale) => {
+  //   setShowModal(true);
+  // };
 
-  const handleSaveSale = async () => {
-    try {
-      const calculatedPricePerUnit =
-        currentSale.totalAmount && currentSale.quantity
-          ? currentSale.totalAmount / currentSale.quantity
-          : 0;
+  // const handleSaveSale = async () => {
+  //   try {
+  //     const calculatedPricePerUnit =
+  //       currentSale.totalAmount && currentSale.quantity
+  //         ? currentSale.totalAmount / currentSale.quantity
+  //         : 0;
 
-      const saleToSave = {
-        ...currentSale,
-        pricePerUnit: calculatedPricePerUnit,
-        customerId: currentSale.customerId || null,
-        customerName: currentSale.customerName || "",
-        customerContainerQty: currentSale.customerContainerQty || 0,
-      };
+  //     const saleToSave = {
+  //       ...currentSale,
+  //       pricePerUnit: calculatedPricePerUnit,
+  //       customerId: currentSale.customerId || null,
+  //       customerName: currentSale.customerName || "",
+  //       customerContainerQty: currentSale.customerContainerQty || 0,
+  //     };
 
-      if (isEditing) {
-        await axios.put(
-          `${process.env.REACT_APP_API_URL}/api/sales/${saleToEditId}`,
-          saleToSave
-        );
-      } else {
-        await axios.post(
-          `${process.env.REACT_APP_API_URL}/api/sales`,
-          saleToSave
-        );
-      }
+  //     if (isEditing) {
+  //       await axios.put(
+  //         `${process.env.REACT_APP_API_URL}/api/sales/${saleToEditId}`,
+  //         saleToSave
+  //       );
+  //     } else {
+  //       await axios.post(
+  //         `${process.env.REACT_APP_API_URL}/api/sales`,
+  //         saleToSave
+  //       );
+  //     }
 
-      setShowModal(false);
-      fetchSales();
-    } catch (err) {
-      console.error(err);
-    }
-  };
+  //     setShowModal(false);
+  //     fetchSales();
+  //   } catch (err) {
+  //     console.error(err);
+  //   }
+  // };
 
   const handleDeleteClick = (sale) => {
     setSaleToDelete(sale);
@@ -276,9 +275,26 @@ function Sales() {
     }
   };
 
+  const handleAddCustomer = (s = null) => {
+    if (s) {
+      // Add mode
+      setIsEditing(false);
+      setCurrentSaleId(s._id);
+      setCurrentCustomer({
+        name: s.customerName,
+        nickname: "",
+        phone: "",
+        address: "",
+        landmark: "",
+        birthday: "",
+        remarks: "",
+      });
+    }
+    setShowAddEditCustomerModal(true);
+    fetchSales();
+  };
 
-
-  const handleAddCustomer = async () => {
+  const handleAddCustomerOLD = async () => {
     try {
       // 1. Create the new customer
       const res = await axios.post(
@@ -291,8 +307,8 @@ function Sales() {
       setCustomers((prev) => [...prev, newCustomer]);
 
       // Link to the current sale row in editedSales
-      handleEditedSales(currentSaleId, "customerId", newCustomer._id);
-      handleEditedSales(currentSaleId, "customerName", newCustomer.name);
+      //handleEditedSales(currentSaleId, "customerId", newCustomer._id);
+      //handleEditedSales(currentSaleId, "customerName", newCustomer.name);
 
       // 2. Update the sale with new customerId and customerName
       await axios.put(
@@ -318,7 +334,7 @@ function Sales() {
 
       // 5. Close modal and reset
 
-      setShowAddCustomerModal(false);
+      setShowAddEditCustomerModal(false);
       setCurrentCustomer({});
       setCurrentSaleId(null);
 
@@ -372,6 +388,7 @@ function Sales() {
         [field]: value,
       };
 
+      console.log(editedSales);
       // Recalculate pricePerUnit if relevant fields are present
       const quantity = field === "quantity" ? value : previous.quantity;
       const totalAmount =
@@ -395,7 +412,9 @@ function Sales() {
     <div style={{ padding: "20px" }}>
       <h2>Sales</h2>
 
-      <div className="d-flex justify-content-between align-items-end flex-wrap mb-3">
+      {/* Top Controls Bar */}
+      <div className="d-flex flex-column flex-md-row justify-content-between align-items-center mb-3">
+        {/* LEFT SIDE - Action Buttons */}
         <div className="d-flex gap-2 flex-wrap">
           {/* Add Sales Button*/}
           <Button variant="primary" onClick={() => handleAddEditModal()}>
@@ -413,6 +432,7 @@ function Sales() {
           >
             Add Multiple Sales
           </Button>
+
           {/* Edit Mode Buttons*/}
           <Button
             variant={editMode ? "danger" : "warning"}
@@ -471,58 +491,82 @@ function Sales() {
           )}
         </div>
 
-        <div style={{ position: "relative" }}>
-          <Button
-            variant="outline-secondary"
-            onClick={() => setShowDatePicker(!showDatePicker)}
-          >
-            {range?.from && range?.to
-              ? `Filtered: ${range.from.toLocaleDateString()} - ${range.to.toLocaleDateString()}`
-              : "Filter by Date"}
-          </Button>
-
-          {showDatePicker && (
-            <div
-              style={{
-                position: "absolute",
-                zIndex: 1000,
-                top: "100%",
-                right: 0,
-                marginTop: "5px",
-                background: "white",
-                boxShadow: "0 4px 8px rgba(0,0,0,0.1)",
-                borderRadius: "6px",
-                padding: "8px",
-              }}
-            >
-              <DayPicker
-                mode="range"
-                selected={range}
-                onSelect={(range) => {
-                  if (range) {
-                    setRange(range);
-
-                    // Only hide if from and to are defined and different (true range selected)
-                    // if (range.from && range.to && range.from.getTime() !== range.to.getTime()) {
-                    //   setShowDatePicker(false);
-
-                    // }
-                  }
-                }}
-                numberOfMonths={1}
-                defaultMonth={range?.from || undefined}
-              />
-            </div>
-          )}
-
-          {(range.from || range.to) && (
+        {/* RIGHT SIDE - Page + Date Filter */}
+        <div className="d-flex align-items-center">
+          {/* Date Pages Controls */}
+          <div className="d-flex align-items-center me-3">
             <Button
-              variant="outline-danger"
-              onClick={() => setRange({ from: undefined, to: undefined })}
+              variant="secondary"
+              disabled={currentPage === 0}
+              onClick={() => setCurrentPage(currentPage - 1)}
+              className="me-2"
             >
-              Clear Filters
+              Previous
             </Button>
-          )}
+
+            <span>
+              {datePages[currentPage]
+                ? new Date(datePages[currentPage]).toLocaleDateString()
+                : "No Date"}
+            </span>
+
+            <Button
+              variant="secondary"
+              disabled={currentPage === datePages.length - 1}
+              onClick={() => setCurrentPage(currentPage + 1)}
+              className="ms-2"
+            >
+              Next
+            </Button>
+          </div>
+
+          {/* Date Filter */}
+          <div style={{ position: "relative" }}>
+            <Button
+              variant="outline-secondary"
+              onClick={() => setShowDatePicker(!showDatePicker)}
+            >
+              {range?.from && range?.to
+                ? `Filtered: ${range.from.toLocaleDateString()} - ${range.to.toLocaleDateString()}`
+                : "Filter by Date"}
+            </Button>
+
+            {showDatePicker && (
+              <div
+                style={{
+                  position: "absolute",
+                  zIndex: 1000,
+                  top: "100%",
+                  right: 0,
+                  marginTop: "5px",
+                  background: "white",
+                  boxShadow: "0 4px 8px rgba(0,0,0,0.1)",
+                  borderRadius: "6px",
+                  padding: "8px",
+                }}
+              >
+                <DayPicker
+                  mode="range"
+                  selected={range}
+                  onSelect={(range) => {
+                    if (range) setRange(range);
+                  }}
+                  numberOfMonths={1}
+                  defaultMonth={range?.from || undefined}
+                />
+              </div>
+            )}
+
+            {(range.from || range.to) && (
+              <Button
+                variant="outline-danger"
+                className="ms-2 mt-2 mt-md-0"
+                onClick={() => setRange({ from: undefined, to: undefined })}
+              >
+                Clear
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -537,12 +581,19 @@ function Sales() {
               <th>
                 <Form.Check
                   type="checkbox"
-                  checked={checkAll}
+                  checked={
+                    checkAll
+                    // filteredSales.length > 0 &&
+                    // filteredSales.every((s) => selectedSalesIds.includes(s._id))
+                  }
                   onChange={(e) => {
-                    const allIds = sales.map((s) => s._id);
+                    // Get only the currently visible sales (after filters)
+                    //const visibleSalesIds = filteredSales.map((s) => s._id);
+                    console.log(sales.length);
+
                     setCheckAll(e.target.checked);
                     if (e.target.checked) {
-                      setSelectedSalesIds(allIds);
+                      //setSelectedSalesIds(visibleSalesIds);
                     } else {
                       setSelectedSalesIds([]);
                     }
@@ -568,13 +619,26 @@ function Sales() {
         <tbody>
           {sales
             .filter((s) => {
-              if (!range.from || !range.to) return true;
               const saleDate = new Date(s.date);
-              return saleDate >= range.from && saleDate <= range.to;
+
+              // ✅ If range is set, only apply range filter
+              if (range.from && range.to) {
+                return saleDate >= range.from && saleDate <= range.to;
+              }
+
+              // ✅ Otherwise, apply datePages filter
+              if (datePages && datePages.length > 0) {
+                const currentDate = datePages[currentPage];
+                if (currentDate) {
+                  return saleDate.toDateString() === currentDate;
+                }
+              }
+
+              return true; // no filters applied
             })
 
             .sort((a, b) => new Date(a.date) - new Date(b.date))
-            // .sort((a, b) => {
+            //* .sort((a, b) => {
             //   // 1️⃣ Compare names (case-insensitive)
             //   const nameA = a.customerName?.toLowerCase() || '';
             //   const nameB = b.customerName?.toLowerCase() || '';
@@ -1122,89 +1186,8 @@ function Sales() {
         containers={containers}
       />
 
-      {/* Delete Confirmation Modal */}
-      <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)}>
-        <Modal.Header closeButton>
-          <Modal.Title>Delete Sale</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>Are you sure you want to delete this sale?</Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowDeleteModal(false)}>
-            Cancel
-          </Button>
-          <Button variant="danger" onClick={handleDeleteSale}>
-            Delete
-          </Button>
-        </Modal.Footer>
-      </Modal>
-
-      {/* AddMultiSalesModal */}
-      <AddMultiSalesModal
-        show={showAddMultiSalesModal}
-        onHide={() => setShowAddMultiSalesModal(false)}
-        fetchSales={fetchSales}
-        containers={containers}
-        customers={customers}
-      />
-
-      {/* Add Delete Selected Modal */}
-      <Modal
-        show={showDeleteSelectedModal}
-        onHide={() => setShowDeleteSelectedModal(false)}
-      >
-        <Modal.Header closeButton>
-          <Modal.Title>Confirm Delete Selected</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          Are you sure you want to delete {selectedSalesIds.length} selected
-          sale{selectedSalesIds.length > 1 ? "s" : ""}?
-        </Modal.Body>
-        <Modal.Footer>
-          <Button
-            variant="secondary"
-            onClick={() => setShowDeleteSelectedModal(false)}
-          >
-            Cancel
-          </Button>
-          <Button
-            variant="danger"
-            onClick={async () => {
-              try {
-                setShowDeleteSelectedModal(false);
-                setDeleting(true);
-                setDeleteProgress(0);
-
-                for (let i = 0; i < selectedSalesIds.length; i++) {
-                  const id = selectedSalesIds[i];
-                  await axios.delete(
-                    `${process.env.REACT_APP_API_URL}/api/sales/${id}`
-                  );
-                  setDeleteProgress(
-                    Math.round(((i + 1) / selectedSalesIds.length) * 100)
-                  );
-                }
-
-                setDeleteSuccess(true);
-                setTimeout(() => setDeleteSuccess(false), 3000);
-
-                fetchSales();
-                setSelectedSalesIds([]);
-                setCheckAll(false);
-              } catch (err) {
-                console.error(err);
-                alert("Error deleting selected sales.");
-              } finally {
-                setDeleting(false);
-                setDeleteProgress(0);
-              }
-            }}
-          >
-            Confirm Delete
-          </Button>
-        </Modal.Footer>
-      </Modal>
-
-      {/* Add New Customer Modal */}
+      {/* Add New Customer Modal 
+      
       <Modal
         show={showAddCustomerModal}
         onHide={() => setShowAddCustomerModal(false)}
@@ -1349,11 +1332,29 @@ function Sales() {
           >
             Cancel
           </Button>
-          <Button variant="primary" onClick={handleAddCustomer}>
+          <Button variant="primary" onClick={handleAddCustomerOLD}>
             Save
           </Button>
         </Modal.Footer>
       </Modal>
+*/}
+
+<AddEditCustomerModal
+  show={showAddCustomerModal}
+  onHide={() => setShowAddCustomerModal(false)}
+  fetchCustomers={fetchCustomers}
+  fetchSales={fetchSales}
+  currentCustomer={currentCustomer}
+  setCurrentCustomer={setCurrentCustomer}
+  isEditing={false}
+  fromSale={true}
+  currentSaleId={currentSaleId}
+  setSales={setSales}
+  setCustomers={setCustomers}
+  setSuccessMessage={setSuccessMessage}
+  setShowSuccessModal={setShowSuccessModal}
+/>
+
 
       <Modal show={showSuccessModal} onHide={() => setShowSuccessModal(false)}>
         <Modal.Header closeButton>
@@ -1367,6 +1368,8 @@ function Sales() {
             variant="primary"
             onClick={() => {
               setShowSuccessModal(false);
+              setShowAddCustomerModal(false);
+              setEditMode(false);
               fetchSales(); // refresh when modal is closed
             }}
           >
@@ -1374,10 +1377,101 @@ function Sales() {
           </Button>
         </Modal.Footer>
       </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)}>
+        <Modal.Header closeButton>
+          <Modal.Title>Delete Sale</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>Are you sure you want to delete this sale?</Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowDeleteModal(false)}>
+            Cancel
+          </Button>
+          <Button variant="danger" onClick={handleDeleteSale}>
+            Delete
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* AddMultiSalesModal */}
+      <AddMultiSalesModal
+        show={showAddMultiSalesModal}
+        onHide={() => setShowAddMultiSalesModal(false)}
+        fetchSales={fetchSales}
+        containers={containers}
+        customers={customers}
+      />
+
+      {/* Add Delete Selected Modal */}
+      <Modal
+        show={showDeleteSelectedModal}
+        onHide={() => setShowDeleteSelectedModal(false)}
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>Confirm Delete Selected</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          Are you sure you want to delete {selectedSalesIds.length} selected
+          sale{selectedSalesIds.length > 1 ? "s" : ""}?
+        </Modal.Body>
+        <Modal.Footer>
+          <Button
+            variant="secondary"
+            onClick={() => setShowDeleteSelectedModal(false)}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="danger"
+            onClick={async () => {
+              try {
+                setShowDeleteSelectedModal(false);
+                setDeleting(true);
+                setDeleteProgress(0);
+
+                for (let i = 0; i < selectedSalesIds.length; i++) {
+                  const id = selectedSalesIds[i];
+                  await axios.delete(
+                    `${process.env.REACT_APP_API_URL}/api/sales/${id}`
+                  );
+                  setDeleteProgress(
+                    Math.round(((i + 1) / selectedSalesIds.length) * 100)
+                  );
+                }
+
+                setDeleteSuccess(true);
+                setTimeout(() => setDeleteSuccess(false), 3000);
+
+                fetchSales();
+                setSelectedSalesIds([]);
+                setCheckAll(false);
+              } catch (err) {
+                console.error(err);
+                alert("Error deleting selected sales.");
+              } finally {
+                setDeleting(false);
+                setDeleteProgress(0);
+              }
+            }}
+          >
+            Confirm Delete
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* AddEditCustomerModal */}
+      <AddEditCustomerModal
+        show={showAddEditCustomerModal}
+        onHide={() => setShowAddEditCustomerModal(false)}
+        currentCustomer={currentCustomer}
+        setCurrentCustomer={setCurrentCustomer}
+        fetchCustomers={fetchCustomers}
+        fetchSales={fetchSales}
+        currentSaleId={currentSaleId}
+      />
     </div>
   );
 }
 
 export default Sales;
-
-

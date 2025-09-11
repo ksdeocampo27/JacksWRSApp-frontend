@@ -45,8 +45,22 @@ export default function AddEditSalesModal({
         );
       }
 
-      onHide();
+          // 3. Fetch the fully populated updated sale
+      const populatedSaleRes = await axios.get(
+        `${process.env.REACT_APP_API_URL}/api/sales/${currentSaleId}`
+      );
+      const populatedSale = populatedSaleRes.data;
+
+      // 4. Update sales state locally to reflect immediately
+      setSales((prevSales) =>
+        prevSales.map((s) => (s._id === populatedSale._id ? populatedSale : s))
+      );
+      // 🔁 Re-fetch inventory to update name link
       fetchSales();
+
+
+      onHide();
+      
     } catch (err) {
       console.error(err);
     }

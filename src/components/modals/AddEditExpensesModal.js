@@ -20,6 +20,9 @@ export default function AddEditExpenseModal({
 }) {
   // const
 
+    // ================================
+  //            HANDLERS
+  // ================================
   // ADD or UPDATE Expenses
   const handleSave = async () => {
     try {
