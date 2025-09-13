@@ -82,33 +82,50 @@ function Sales() {
     remarks: "",
   });
 
-  // Calculate paginated data
-  //const [filterType, setFilterType] = useState("Slim");
-  const [currentPage, setCurrentPage] = useState(1);
-  const recordsPerPage = 100;
-  //const filteredSales = sales.filter((s) => s.type === filterType);
-  //const indexOfLastRecord = currentPage * recordsPerPage;
-  //const indexOfFirstRecord = indexOfLastRecord - recordsPerPage;
-  // const currentRecords = filteredSales.slice(
-  //   indexOfFirstRecord,
-  //   indexOfLastRecord
-  // );
-  //const totalPages = Math.ceil(filteredSales.length / recordsPerPage);
-
   // Build unique date pages
   const datePages = [
     ...new Set(sales.map((s) => new Date(s.date).toDateString())),
   ].sort((a, b) => new Date(a) - new Date(b));
 
-  const currentDate = datePages[currentPage];
+  const [currentPage, setCurrentPage] = useState(
+    datePages.length > 0 ? datePages.length - 1 : 0
+  );
+  // 🔹 Ensure we jump to the last page once sales are loaded
+  useEffect(() => {
+    if (datePages.length > 0) {
+      setCurrentPage(datePages.length - 1);
+    }
+  }, [datePages]);
+
+  // Compute visible sales once
+  const visibleSales = sales
+    .filter((s) => {
+      const saleDate = new Date(s.date);
+
+      // ✅ Range filter
+      if (range.from && range.to) {
+        return saleDate >= range.from && saleDate <= range.to;
+      }
+
+      // ✅ Date pages filter
+      if (datePages && datePages.length > 0) {
+        const currentDate = datePages[currentPage];
+        if (currentDate) {
+          return saleDate.toDateString() === currentDate;
+        }
+      }
+
+      return true; // no filters applied
+    })
+    .sort((a, b) => new Date(a.date) - new Date(b.date));
 
   // ===============================
   // LOAD SALES & CUSTOMERS
   // ===============================
-  useEffect(() => {
-    fetchSales();
-    fetchCustomers();
-  }, []);
+  // useEffect(() => {
+  //   fetchSales();
+  //   fetchCustomers();
+  // }, []);
 
   const fetchSales = async () => {
     try {
@@ -166,6 +183,7 @@ function Sales() {
     fetchCustomers();
     fetchContainers(); // load containers
   }, []);
+
   useEffect(() => {
     //console.log("editedSales updated:", editedSales);
   }, [editedSales]); // Runs every time editedSales changes
@@ -347,7 +365,6 @@ function Sales() {
   };
 
   const handleSaleDateChange = (saleId, newDate) => {
-    console.log(newDate);
     const updatedSales = editableSales.map((sale) =>
       sale._id === saleId ? { ...sale, date: newDate } : sale
     );
@@ -388,7 +405,6 @@ function Sales() {
         [field]: value,
       };
 
-      console.log(editedSales);
       // Recalculate pricePerUnit if relevant fields are present
       const quantity = field === "quantity" ? value : previous.quantity;
       const totalAmount =
@@ -491,9 +507,9 @@ function Sales() {
           )}
         </div>
 
-        {/* RIGHT SIDE - Page + Date Filter */}
+        {/* RIGHT SIDE - Page + Date Filter 
         <div className="d-flex align-items-center">
-          {/* Date Pages Controls */}
+          //Date Pages Controls
           <div className="d-flex align-items-center me-3">
             <Button
               variant="secondary"
@@ -504,6 +520,7 @@ function Sales() {
               Previous
             </Button>
 
+            //insert date filter date here instead of this span
             <span>
               {datePages[currentPage]
                 ? new Date(datePages[currentPage]).toLocaleDateString()
@@ -520,7 +537,7 @@ function Sales() {
             </Button>
           </div>
 
-          {/* Date Filter */}
+          //Date Filter
           <div style={{ position: "relative" }}>
             <Button
               variant="outline-secondary"
@@ -567,9 +584,89 @@ function Sales() {
               </Button>
             )}
           </div>
+        </div>*/}
+
+        {/* Date Navigation with Range Picker */}
+        <div className="d-flex align-items-center">
+          {/* Previous Button */}
+          <Button
+            variant="secondary"
+            disabled={currentPage === 0}
+            onClick={() => setCurrentPage(currentPage - 1)}
+            className="me-2"
+          >
+            Previous
+          </Button>
+
+          {/* Current Date Label (opens range picker) */}
+          <div style={{ position: "relative" }}>
+            <Button
+              variant="outline-secondary"
+              onClick={() => setShowDatePicker(!showDatePicker)}
+            >
+              {range?.from && range?.to
+                ? `Filtered: ${range.from.toLocaleDateString()} - ${range.to.toLocaleDateString()}`
+                : datePages[currentPage]
+                ? new Date(datePages[currentPage]).toLocaleDateString()
+                : "No Date"}
+            </Button>
+
+            {showDatePicker && (
+              <div
+                style={{
+                  position: "absolute",
+                  zIndex: 1000,
+                  top: "100%",
+                  right: 0,
+                  marginTop: "5px",
+                  background: "white",
+                  boxShadow: "0 4px 8px rgba(0,0,0,0.1)",
+                  borderRadius: "6px",
+                  padding: "8px",
+                }}
+              >
+                <DayPicker
+                  mode="range"
+                  selected={range}
+                  onSelect={(range) => {
+                    if (range) setRange(range);
+                  }}
+                  numberOfMonths={1}
+                  defaultMonth={range?.from || undefined}
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Next Button */}
+          <Button
+            variant="secondary"
+            disabled={currentPage === datePages.length - 1}
+            onClick={() => setCurrentPage(currentPage + 1)}
+            className="ms-2"
+          >
+            Next
+          </Button>
+
+          {/* Clear Filter Button */}
+          {(range?.from || range?.to) && (
+            <Button
+              variant="outline-danger"
+              className="ms-2"
+              onClick={() => setRange({ from: undefined, to: undefined })}
+            >
+              Clear
+            </Button>
+          )}
         </div>
       </div>
-
+<Button
+  variant="outline-primary"
+  className="ms-2 mt-2 mt-md-0"
+  onClick={() => console.log(visibleSales)}
+>
+  Test Visible Records
+</Button>
       {/* ////////////////////////////// */}
       {/* /////       TABLE        ///// */}
       {/* ////////////////////////////// */}
@@ -587,13 +684,17 @@ function Sales() {
                     // filteredSales.every((s) => selectedSalesIds.includes(s._id))
                   }
                   onChange={(e) => {
-                    // Get only the currently visible sales (after filters)
-                    //const visibleSalesIds = filteredSales.map((s) => s._id);
-                    console.log(sales.length);
-
                     setCheckAll(e.target.checked);
+                    // if (e.target.checked) {
+                    //   //setSelectedSalesIds(visibleSalesIds);
+                    // } else {
+                    //   setSelectedSalesIds([]);
+                    // }
                     if (e.target.checked) {
-                      //setSelectedSalesIds(visibleSalesIds);
+                      // 👇 only the visible/filtered sales
+                      const visibleSalesIds = visibleSales.map((s) => s._id);
+                      console.log("Visible Sales IDs:", visibleSalesIds);
+                      setSelectedSalesIds(visibleSalesIds);
                     } else {
                       setSelectedSalesIds([]);
                     }
@@ -617,7 +718,7 @@ function Sales() {
           </tr>
         </thead>
         <tbody>
-          {sales
+          {/* {sales
             .filter((s) => {
               const saleDate = new Date(s.date);
 
@@ -652,521 +753,521 @@ function Sales() {
             // })
 
             .map((s) => {
-              const isChecked = selectedSalesIds.includes(s._id);
+              const isChecked = selectedSalesIds.includes(s._id); */}
+          {visibleSales.map((s) => {
+            const isChecked = selectedSalesIds.includes(s._id);
 
-              return (
-                <tr key={s._id}>
-                  {/* =====   CHECK BOXES   =====*/}
-                  {editMode && (
-                    <td>
-                      <Form.Check
-                        type="checkbox"
-                        checked={isChecked}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            const newSelected = [...selectedSalesIds, s._id];
-                            setSelectedSalesIds(newSelected);
-                            if (newSelected.length === sales.length) {
-                              setCheckAll(true);
-                            }
-                          } else {
-                            const newSelected = selectedSalesIds.filter(
-                              (id) => id !== s._id
-                            );
-                            setSelectedSalesIds(newSelected);
-                            setCheckAll(false);
-                          }
-                        }}
-                      />
-                    </td>
-                  )}
-                  {/* =====   DATE   =====*/}
+            return (
+              
+              <tr key={s._id}>
+                {/* =====   CHECK BOXES   =====*/}
+                {editMode && (
                   <td>
-                    {editMode ? (
-                      <input
-                        type="date"
-                        value={
-                          new Date(editedSales[s._id]?.date || s.date)
-                            .toISOString()
-                            .split("T")[0]
-                        }
-                        onChange={(e) => {
-                          const newDate = e.target.value;
-                          setEditedSales((prev) => ({
-                            ...prev,
-                            [s._id]: {
-                              ...prev[s._id],
-                              date: newDate,
-                            },
-                          }));
-                        }}
-                      />
-                    ) : (
-                      new Date(s.date).toLocaleDateString("en-US", {
-                        month: "long",
-                        day: "2-digit",
-                        year: "numeric",
-                      })
-                    )}
-                  </td>
-                  {/* =====   CUSTOMER NAME   =====*/}
-                  <td>
-                    {editMode ? (
-                      <Typeahead
-                        id={`customer-typeahead-${s._id}`}
-                        labelKey="name"
-                        options={customers}
-                        placeholder="Select customer..."
-                        allowNew
-                        newSelectionPrefix="New: "
-                        defaultInputValue={(() => {
-                          const edited = editedSales[s._id];
-
-                          // Prefer edited values if available, otherwise use original sale values
-                          const customerId = edited?.customerId ?? s.customerId;
-                          const customerName =
-                            edited?.customerName ?? s.customerName;
-
-                          // Try to find in customers list
-                          const customer = customerId
-                            ? customers.find((c) => c._id === customerId)
-                            : null;
-
-                          // Priority: customer object name → fallback to stored name → empty string
-                          return customer?.name || customerName || "";
-                        })()}
-                        onChange={(selected) => {
-                          if (selected.length > 0) {
-                            const sel = selected[0];
-                            if (sel._id) {
-                              // console.log("1");
-                              handleEditedSales(
-                                s._id,
-                                "customerId",
-                                sel._id,
-                                s
-                              );
-                              handleEditedSales(
-                                s._id,
-                                "customerName",
-                                sel.name,
-                                s
-                              );
-                            } else if (sel.name) {
-                              // New typed name
-                              // console.log("2. New typed name");
-                              setCurrentSaleId(s._id);
-                              setCurrentCustomer((prev) => ({
-                                ...prev,
-                                name: sel.name,
-                              })); // pre-fill name in modal
-                              setShowAddCustomerModal(true);
-
-                              // Temporarily store null ID but keep the typed name in editedSales
-                              handleEditedSales(s._id, "customerId", null, s);
-                              handleEditedSales(
-                                s._id,
-                                "customerName",
-                                sel.name,
-                                s
-                              );
-                            } else if (typeof sel === "string") {
-                              // Typed raw string (edge case)
-                              // console.log("3");
-                              handleEditedSales(s._id, "customerId", null, s);
-                              handleEditedSales(s._id, "customerName", sel, s);
-                            }
-                          } else {
-                            // If cleared selection
-                            // console.log("4");
-                            handleEditedSales(s._id, "customerId", null, s);
-                            handleEditedSales(s._id, "customerName", "", s);
-                          }
-                        }}
-                      />
-                    ) : (
-                      (() => {
-                        const customer = customers.find(
-                          (c) => c._id === (s.customerId?._id || s.customerId)
-                        );
-                        if (customer) {
-                          return (
-                            <a
-                              href={`/customers/${customer._id}/profile`}
-                              style={{ textDecoration: "underline" }}
-                            >
-                              {customer.name}
-                            </a>
-                          );
+                    <Form.Check
+                      type="checkbox"
+                      checked={isChecked}
+                      // onChange={(e) => {
+                      //   if (e.target.checked) {
+                      //     const newSelected = [...selectedSalesIds, s._id];
+                      //     setSelectedSalesIds(newSelected);
+                      //     if (newSelected.length === sales.length) {
+                      //       setCheckAll(true);
+                      //     }
+                      //   } else {
+                      //     const newSelected = selectedSalesIds.filter(
+                      //       (id) => id !== s._id
+                      //     );
+                      //     setSelectedSalesIds(newSelected);
+                      //     setCheckAll(false);
+                      //   }
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedSalesIds([...selectedSalesIds, s._id]);
                         } else {
-                          return s.customerName || "-";
-                        }
-                      })()
-                    )}
-                  </td>
-                  {/* =====   TYPE   =====*/}
-                  <td>
-                    {editMode ? (
-                      <ColoredSelect
-                        options={typesOptions}
-                        defaultValue={
-                          typesOptions.find(
-                            (opt) =>
-                              opt.value === (editedSales[s._id]?.type || s.type)
-                          ) || null
-                        }
-                        placeholder="Select..." // only shows if defaultValue is null
-                        onChange={(selected) => {
-                          // console.log(`Selected: ${selected.value}`);
-                          // console.log(
-                          //   `Setting selected value [${selected.value}] to _id:${s._id}, customerName:${s.customerName}, type:${s.type}`
-                          // );
-                          handleEditedSales(s._id, "type", selected.value, s);
-                        }}
-                      />
-                    ) : (
-                      <span
-                        className="badge"
-                        style={{
-                          backgroundColor:
-                            typeColors[s.type]?.bgColor || "#ccc", // default gray if not found
-                          color: typeColors[s.type]?.textColor || "#000",
-                          borderRadius: "15px",
-                          padding: "6px 10px",
-                          fontSize: "0.9rem",
-                        }}
-                      >
-                        {s.type}
-                      </span>
-                    )}
-                  </td>
-                  {/* =====   ITEM   =====*/}
-                  <td>
-                    {editMode ? (
-                      <ColoredSelect
-                        options={itemOptions}
-                        defaultValue={
-                          itemOptions.find(
-                            (opt) =>
-                              opt.value === (editedSales[s._id]?.item || s.item)
-                          ) || null
-                        }
-                        placeholder="Select..." // only shows if defaultValue is null
-                        onChange={(selected) => {
-                          // console.log(`Selected: ${selected.value}`);
-                          // console.log(
-                          //   `Setting selected value [${selected.value}] to _id:${s._id}, customerName:${s.customerName}, item:${s.item}`
-                          // );
-                          handleEditedSales(s._id, "item", selected.value, s);
-                        }}
-                      />
-                    ) : (
-                      <span
-                        className="badge"
-                        style={{
-                          backgroundColor: itemColors[s.item] || "#ccc", // your custom color
-                          color: "white", // text color
-                          borderRadius: "15px",
-                          padding: "6px 10px",
-                          fontSize: "0.9rem",
-                        }}
-                      >
-                        {s.item}
-                      </span>
-                    )}
-                  </td>
-                  {/* =====   QUANTITY   =====*/}
-                  <td>
-                    {editMode ? (
-                      <input
-                        type="number"
-                        className="form-control form-control-sm"
-                        value={editedSales[s._id]?.quantity ?? s.quantity}
-                        onChange={(e) =>
-                          handleEditedSales(
-                            s._id,
-                            "quantity",
-                            Number(e.target.value),
-                            s
-                          )
-                        }
-                        style={{ width: "60px", height: "1em" }} // optional styling
-                      />
-                    ) : (
-                      s.quantity
-                    )}
-                  </td>
-                  {/* =====   PRICE PER UNIT   =====*/}
-                  <td className="text-muted fst-italic">
-                    {" "}
-                    ₱
-                    {(
-                      editedSales[s._id]?.pricePerUnit ?? s.pricePerUnit
-                    ).toFixed(2)}
-                  </td>
-                  {/* =====   TOTAL AMOUNT   =====*/}
-                  <td>
-                    {editMode ? (
-                      <input
-                        type="number"
-                        className="form-control form-control-sm"
-                        value={editedSales[s._id]?.totalAmount ?? s.totalAmount}
-                        onChange={(e) =>
-                          handleEditedSales(
-                            s._id,
-                            "totalAmount",
-                            Number(e.target.value),
-                            s
-                          )
-                        }
-                        style={{ width: "60px", height: "1em" }} // optional styling
-                      />
-                    ) : (
-                      <>
-                        ₱
-                        {Number(s.totalAmount).toLocaleString("en-PH", {
-                          minimumFractionDigits: 2,
-                        })}
-                      </>
-                    )}
-                  </td>
-                  {/* =====   PAYMENT METHOD   =====*/}
-                  <td>
-                    {editMode ? (
-                      <ColoredSelect
-                        options={paymentMethodOptions}
-                        defaultValue={
-                          paymentMethodOptions.find(
-                            (opt) =>
-                              opt.value ===
-                              (editedSales[s._id]?.paymentMethod ||
-                                s.paymentMethod)
-                          ) || null
-                        }
-                        placeholder="Select..." // only shows if defaultValue is null
-                        onChange={(selected) => {
-                          // console.log(`Selected: ${selected.value}`);
-                          // console.log(
-                          //   `Setting selected value [${selected.value}] to _id:${s._id}, customerName:${s.customerName}, paymentMethod:${s.paymentMethod}`
-                          // );
-                          handleEditedSales(
-                            s._id,
-                            "paymentMethod",
-                            selected.value,
-                            s
+                          setSelectedSalesIds(
+                            selectedSalesIds.filter((id) => id !== s._id)
                           );
-                        }}
-                      />
-                    ) : (
-                      <span
-                        className="badge"
-                        style={{
-                          backgroundColor:
-                            paymentMethodColors[s.paymentMethod] || "#ccc", // your custom color
-                          color: "black", // text color
-                          borderRadius: "15px",
-                          padding: "6px 10px",
-                          fontSize: "0.9rem",
-                        }}
-                      >
-                        {s.paymentMethod}
-                      </span>
-                    )}
+                        }
+                      }}
+                    />
                   </td>
-                  {/* =====   STATUS   =====*/}
-                  <td>
-                    {editMode ? (
-                      <ColoredSelect
-                        options={statusOption}
-                        defaultValue={
-                          statusOption.find(
-                            (opt) =>
-                              opt.value ===
-                              (editedSales[s._id]?.status || s.status)
-                          ) || null
-                        }
-                        placeholder="Select..." // only shows if defaultValue is null
-                        onChange={(selected) => {
-                          // console.log(`Selected: ${selected.value}`);
-                          // console.log(
-                          //   `Setting selected value [${selected.value}] to _id:${s._id}, customerName:${s.customerName}, statusOption:${s.status}`
-                          // );
-                          handleEditedSales(s._id, "status", selected.value, s);
-                        }}
-                      />
-                    ) : (
-                      <span
-                        className="badge"
-                        style={{
-                          backgroundColor: statusColors[s.status] || "#ccc", // your custom color
-                          color: "black", // text color
-                          borderRadius: "15px",
-                          padding: "6px 10px",
-                          fontSize: "0.9rem",
-                        }}
-                      >
-                        {s.status}
-                      </span>
-                    )}
-                  </td>
-                  {/* =====   CUSTOMER OWNED CONTAINERS   =====*/}
-                  {editMode && (
-                    <td>
-                      <input
-                        type="number"
-                        className="form-control form-control-sm"
-                        value={
-                          editedSales[s._id]?.customerContainerQty ??
-                          s.customerContainerQty
-                        }
-                        onChange={(e) =>
-                          handleEditedSales(
-                            s._id,
-                            "customerContainerQty",
-                            Number(e.target.value),
-                            s
-                          )
-                        }
-                        style={{ width: "60px", height: "1em" }} // optional styling
-                      />
-                    </td>
+                )}
+                {/* =====   DATE   =====*/}
+                <td>
+                  {editMode ? (
+                    <input
+                      type="date"
+                      value={
+                        new Date(editedSales[s._id]?.date || s.date)
+                          .toISOString()
+                          .split("T")[0]
+                      }
+                      onChange={(e) => {
+                        const newDate = e.target.value;
+                        setEditedSales((prev) => ({
+                          ...prev,
+                          [s._id]: {
+                            ...prev[s._id],
+                            date: newDate,
+                          },
+                        }));
+                      }}
+                    />
+                  ) : (
+                    new Date(s.date).toLocaleDateString("en-US", {
+                      month: "long",
+                      day: "2-digit",
+                      year: "numeric",
+                    })
                   )}
-                  {/* =====   CONTAINERS   =====*/}
-                  <td>
-                    {editMode ? (
-                      <Typeahead
-                        id={`container-typeahead-${s._id}`}
-                        labelKey={(option) => `${option.id} - ${option.name}`}
-                        options={containers}
-                        placeholder="Select containers..."
-                        multiple
-                        selected={containers.filter((c) =>
-                          (
-                            editedSales[s._id]?.containerIds ||
-                            s.containerIds ||
-                            []
-                          ).some((id) =>
-                            typeof id === "object"
-                              ? id._id === c._id
-                              : id === c._id
-                          )
-                        )}
-                        onChange={(selected) => {
-                          setEditedSales((prev) => ({
-                            ...prev,
-                            [s._id]: {
-                              ...(prev[s._id] || s),
-                              containerIds: selected.map((c) => c._id),
-                            },
-                          }));
-                        }}
-                      />
-                    ) : (
-                      <>
-                        {/* Display owned containers if qty > 0 */}
-                        {s.customerContainerQty > 0 && (
-                          <span>
-                            z{s.customerContainerQty}
-                            {s.containerIds && s.containerIds.length > 0
-                              ? ", "
-                              : ""}
-                          </span>
-                        )}
+                </td>
+                {/* =====   CUSTOMER NAME   =====*/}
+                <td>
+                  {editMode ? (
+                    <Typeahead
+                      id={`customer-typeahead-${s._id}`}
+                      labelKey="name"
+                      options={customers}
+                      placeholder="Select customer..."
+                      allowNew
+                      newSelectionPrefix="New: "
+                      defaultInputValue={(() => {
+                        const edited = editedSales[s._id];
 
-                        {/* Display borrowed containers as clickable links */}
-                        {s.containerIds && s.containerIds.length > 0
-                          ? s.containerIds.map((c, index) => {
-                              const cid = c._id || c; // handle object or ID
-                              const container = containers.find(
-                                (cont) => cont._id === cid
-                              );
-                              return container ? (
-                                <span key={cid}>
-                                  <a
-                                    href={`/inventory/${container._id}`}
-                                    style={{ textDecoration: "underline" }}
-                                  >
-                                    {container.name}
-                                  </a>
-                                  {index < s.containerIds.length - 1
-                                    ? ", "
-                                    : ""}
-                                </span>
-                              ) : (
-                                <span key={cid}>
-                                  {cid}
-                                  {index < s.containerIds.length - 1
-                                    ? ", "
-                                    : ""}
-                                </span>
-                              );
-                            })
-                          : (!s.customerContainerQty ||
-                              s.customerContainerQty === 0) &&
-                            "-"}
-                      </>
-                    )}
-                  </td>
-                  {/* =====   REMARKS   =====*/}
-                  <td>
-                    {editMode ? (
-                      <textarea
-                        className="form-control form-control-sm fst-italic"
-                        value={editedSales[s._id]?.remarks ?? s.remarks}
-                        onChange={(e) =>
-                          handleEditedSales(s._id, "remarks", e.target.value, s)
+                        // Prefer edited values if available, otherwise use original sale values
+                        const customerId = edited?.customerId ?? s.customerId;
+                        const customerName =
+                          edited?.customerName ?? s.customerName;
+
+                        // Try to find in customers list
+                        const customer = customerId
+                          ? customers.find((c) => c._id === customerId)
+                          : null;
+
+                        // Priority: customer object name → fallback to stored name → empty string
+                        return customer?.name || customerName || "";
+                      })()}
+                      onChange={(selected) => {
+                        if (selected.length > 0) {
+                          const sel = selected[0];
+                          if (sel._id) {
+                            // console.log("1");
+                            handleEditedSales(s._id, "customerId", sel._id, s);
+                            handleEditedSales(
+                              s._id,
+                              "customerName",
+                              sel.name,
+                              s
+                            );
+                          } else if (sel.name) {
+                            // New typed name
+                            // console.log("2. New typed name");
+                            setCurrentSaleId(s._id);
+                            setCurrentCustomer((prev) => ({
+                              ...prev,
+                              name: sel.name,
+                            })); // pre-fill name in modal
+                            setShowAddCustomerModal(true);
+
+                            // Temporarily store null ID but keep the typed name in editedSales
+                            handleEditedSales(s._id, "customerId", null, s);
+                            handleEditedSales(
+                              s._id,
+                              "customerName",
+                              sel.name,
+                              s
+                            );
+                          } else if (typeof sel === "string") {
+                            // Typed raw string (edge case)
+                            // console.log("3");
+                            handleEditedSales(s._id, "customerId", null, s);
+                            handleEditedSales(s._id, "customerName", sel, s);
+                          }
+                        } else {
+                          // If cleared selection
+                          // console.log("4");
+                          handleEditedSales(s._id, "customerId", null, s);
+                          handleEditedSales(s._id, "customerName", "", s);
                         }
-                        rows={2}
-                        style={{ minWidth: "100px", fontStyle: "italic" }}
-                      />
-                    ) : (
-                      <span className="fst-italic">{s.remarks}</span>
-                    )}
-                  </td>
-                  {/* =====   ACTIONS   =====*/}
-                  {editMode && (
-                    <>
-                      <td>
-                        {/* =====   ACTION - ADD NEW CUSTOMER BUTTON  =====*/}
-                        {!customers.some(
-                          (c) =>
-                            c.name.toLowerCase() ===
-                            s.customerName.toLowerCase()
-                        ) && (
-                          <Button
-                            variant="success"
-                            size="sm"
-                            onClick={() => {
-                              setCurrentCustomer({ name: s.customerName });
-                              setCurrentSaleId(s._id);
-                              setShowAddCustomerModal(true);
-                            }}
+                      }}
+                    />
+                  ) : (
+                    (() => {
+                      const customer = customers.find(
+                        (c) => c._id === (s.customerId?._id || s.customerId)
+                      );
+                      if (customer) {
+                        return (
+                          <a
+                            href={`/customers/${customer._id}/profile`}
+                            style={{ textDecoration: "underline" }}
                           >
-                            <FaPlus /> {/* or your add icon */}
-                          </Button>
-                        )}
-                        {/* =====   ACTION - EDIT BUTTON  =====*/}
-                        <Button
-                          variant="link"
-                          size="sm"
-                          onClick={() => handleAddEditModal(s)}
-                        >
-                          <FaEdit color="orange" />
-                        </Button>
-                        {/* =====   ACTION - DELETE BUTTON  =====*/}
-                        <Button
-                          variant="link"
-                          size="sm"
-                          onClick={() => handleDeleteClick(s)}
-                        >
-                          <FaTrash color="red" />
-                        </Button>
-                      </td>
+                            {customer.name}
+                          </a>
+                        );
+                      } else {
+                        return s.customerName || "-";
+                      }
+                    })()
+                  )}
+                </td>
+                {/* =====   TYPE   =====*/}
+                <td>
+                  {editMode ? (
+                    <ColoredSelect
+                      options={typesOptions}
+                      defaultValue={
+                        typesOptions.find(
+                          (opt) =>
+                            opt.value === (editedSales[s._id]?.type || s.type)
+                        ) || null
+                      }
+                      placeholder="Select..." // only shows if defaultValue is null
+                      onChange={(selected) => {
+                        // console.log(`Selected: ${selected.value}`);
+                        // console.log(
+                        //   `Setting selected value [${selected.value}] to _id:${s._id}, customerName:${s.customerName}, type:${s.type}`
+                        // );
+                        handleEditedSales(s._id, "type", selected.value, s);
+                      }}
+                    />
+                  ) : (
+                    <span
+                      className="badge"
+                      style={{
+                        backgroundColor: typeColors[s.type]?.bgColor || "#ccc", // default gray if not found
+                        color: typeColors[s.type]?.textColor || "#000",
+                        borderRadius: "15px",
+                        padding: "6px 10px",
+                        fontSize: "0.9rem",
+                      }}
+                    >
+                      {s.type}
+                    </span>
+                  )}
+                </td>
+                {/* =====   ITEM   =====*/}
+                <td>
+                  {editMode ? (
+                    <ColoredSelect
+                      options={itemOptions}
+                      defaultValue={
+                        itemOptions.find(
+                          (opt) =>
+                            opt.value === (editedSales[s._id]?.item || s.item)
+                        ) || null
+                      }
+                      placeholder="Select..." // only shows if defaultValue is null
+                      onChange={(selected) => {
+                        // console.log(`Selected: ${selected.value}`);
+                        // console.log(
+                        //   `Setting selected value [${selected.value}] to _id:${s._id}, customerName:${s.customerName}, item:${s.item}`
+                        // );
+                        handleEditedSales(s._id, "item", selected.value, s);
+                      }}
+                    />
+                  ) : (
+                    <span
+                      className="badge"
+                      style={{
+                        backgroundColor: itemColors[s.item] || "#ccc", // your custom color
+                        color: "white", // text color
+                        borderRadius: "15px",
+                        padding: "6px 10px",
+                        fontSize: "0.9rem",
+                      }}
+                    >
+                      {s.item}
+                    </span>
+                  )}
+                </td>
+                {/* =====   QUANTITY   =====*/}
+                <td>
+                  {editMode ? (
+                    <input
+                      type="number"
+                      className="form-control form-control-sm"
+                      value={editedSales[s._id]?.quantity ?? s.quantity}
+                      onChange={(e) =>
+                        handleEditedSales(
+                          s._id,
+                          "quantity",
+                          Number(e.target.value),
+                          s
+                        )
+                      }
+                      style={{ width: "60px", height: "1em" }} // optional styling
+                    />
+                  ) : (
+                    s.quantity
+                  )}
+                </td>
+                {/* =====   PRICE PER UNIT   =====*/}
+                <td className="text-muted fst-italic">
+                  {" "}
+                  ₱
+                  {(editedSales[s._id]?.pricePerUnit ?? s.pricePerUnit).toFixed(
+                    2
+                  )}
+                </td>
+                {/* =====   TOTAL AMOUNT   =====*/}
+                <td>
+                  {editMode ? (
+                    <input
+                      type="number"
+                      className="form-control form-control-sm"
+                      value={editedSales[s._id]?.totalAmount ?? s.totalAmount}
+                      onChange={(e) =>
+                        handleEditedSales(
+                          s._id,
+                          "totalAmount",
+                          Number(e.target.value),
+                          s
+                        )
+                      }
+                      style={{ width: "60px", height: "1em" }} // optional styling
+                    />
+                  ) : (
+                    <>
+                      ₱
+                      {Number(s.totalAmount).toLocaleString("en-PH", {
+                        minimumFractionDigits: 2,
+                      })}
                     </>
                   )}
-                </tr>
-              );
-            })}
+                </td>
+                {/* =====   PAYMENT METHOD   =====*/}
+                <td>
+                  {editMode ? (
+                    <ColoredSelect
+                      options={paymentMethodOptions}
+                      defaultValue={
+                        paymentMethodOptions.find(
+                          (opt) =>
+                            opt.value ===
+                            (editedSales[s._id]?.paymentMethod ||
+                              s.paymentMethod)
+                        ) || null
+                      }
+                      placeholder="Select..." // only shows if defaultValue is null
+                      onChange={(selected) => {
+                        // console.log(`Selected: ${selected.value}`);
+                        // console.log(
+                        //   `Setting selected value [${selected.value}] to _id:${s._id}, customerName:${s.customerName}, paymentMethod:${s.paymentMethod}`
+                        // );
+                        handleEditedSales(
+                          s._id,
+                          "paymentMethod",
+                          selected.value,
+                          s
+                        );
+                      }}
+                    />
+                  ) : (
+                    <span
+                      className="badge"
+                      style={{
+                        backgroundColor:
+                          paymentMethodColors[s.paymentMethod] || "#ccc", // your custom color
+                        color: "black", // text color
+                        borderRadius: "15px",
+                        padding: "6px 10px",
+                        fontSize: "0.9rem",
+                      }}
+                    >
+                      {s.paymentMethod}
+                    </span>
+                  )}
+                </td>
+                {/* =====   STATUS   =====*/}
+                <td>
+                  {editMode ? (
+                    <ColoredSelect
+                      options={statusOption}
+                      defaultValue={
+                        statusOption.find(
+                          (opt) =>
+                            opt.value ===
+                            (editedSales[s._id]?.status || s.status)
+                        ) || null
+                      }
+                      placeholder="Select..." // only shows if defaultValue is null
+                      onChange={(selected) => {
+                        // console.log(`Selected: ${selected.value}`);
+                        // console.log(
+                        //   `Setting selected value [${selected.value}] to _id:${s._id}, customerName:${s.customerName}, statusOption:${s.status}`
+                        // );
+                        handleEditedSales(s._id, "status", selected.value, s);
+                      }}
+                    />
+                  ) : (
+                    <span
+                      className="badge"
+                      style={{
+                        backgroundColor: statusColors[s.status] || "#ccc", // your custom color
+                        color: "black", // text color
+                        borderRadius: "15px",
+                        padding: "6px 10px",
+                        fontSize: "0.9rem",
+                      }}
+                    >
+                      {s.status}
+                    </span>
+                  )}
+                </td>
+                {/* =====   CUSTOMER OWNED CONTAINERS   =====*/}
+                {editMode && (
+                  <td>
+                    <input
+                      type="number"
+                      className="form-control form-control-sm"
+                      value={
+                        editedSales[s._id]?.customerContainerQty ??
+                        s.customerContainerQty
+                      }
+                      onChange={(e) =>
+                        handleEditedSales(
+                          s._id,
+                          "customerContainerQty",
+                          Number(e.target.value),
+                          s
+                        )
+                      }
+                      style={{ width: "60px", height: "1em" }} // optional styling
+                    />
+                  </td>
+                )}
+                {/* =====   CONTAINERS   =====*/}
+                <td>
+                  {editMode ? (
+                    <Typeahead
+                      id={`container-typeahead-${s._id}`}
+                      labelKey={(option) => `${option.id} - ${option.name}`}
+                      options={containers}
+                      placeholder="Select containers..."
+                      multiple
+                      selected={containers.filter((c) =>
+                        (
+                          editedSales[s._id]?.containerIds ||
+                          s.containerIds ||
+                          []
+                        ).some((id) =>
+                          typeof id === "object"
+                            ? id._id === c._id
+                            : id === c._id
+                        )
+                      )}
+                      onChange={(selected) => {
+                        setEditedSales((prev) => ({
+                          ...prev,
+                          [s._id]: {
+                            ...(prev[s._id] || s),
+                            containerIds: selected.map((c) => c._id),
+                          },
+                        }));
+                      }}
+                    />
+                  ) : (
+                    <>
+                      {/* Display owned containers if qty > 0 */}
+                      {s.customerContainerQty > 0 && (
+                        <span>
+                          z{s.customerContainerQty}
+                          {s.containerIds && s.containerIds.length > 0
+                            ? ", "
+                            : ""}
+                        </span>
+                      )}
+
+                      {/* Display borrowed containers as clickable links */}
+                      {s.containerIds && s.containerIds.length > 0
+                        ? s.containerIds.map((c, index) => {
+                            const cid = c._id || c; // handle object or ID
+                            const container = containers.find(
+                              (cont) => cont._id === cid
+                            );
+                            return container ? (
+                              <span key={cid}>
+                                <a
+                                  href={`/inventory/${container._id}`}
+                                  style={{ textDecoration: "underline" }}
+                                >
+                                  {container.name}
+                                </a>
+                                {index < s.containerIds.length - 1 ? ", " : ""}
+                              </span>
+                            ) : (
+                              <span key={cid}>
+                                {cid}
+                                {index < s.containerIds.length - 1 ? ", " : ""}
+                              </span>
+                            );
+                          })
+                        : (!s.customerContainerQty ||
+                            s.customerContainerQty === 0) &&
+                          "-"}
+                    </>
+                  )}
+                </td>
+                {/* =====   REMARKS   =====*/}
+                <td>
+                  {editMode ? (
+                    <textarea
+                      className="form-control form-control-sm fst-italic"
+                      value={editedSales[s._id]?.remarks ?? s.remarks}
+                      onChange={(e) =>
+                        handleEditedSales(s._id, "remarks", e.target.value, s)
+                      }
+                      rows={2}
+                      style={{ minWidth: "100px", fontStyle: "italic" }}
+                    />
+                  ) : (
+                    <span className="fst-italic">{s.remarks}</span>
+                  )}
+                </td>
+                {/* =====   ACTIONS   =====*/}
+                {editMode && (
+                  <>
+                    <td>
+                      {/* =====   ACTION - ADD NEW CUSTOMER BUTTON  =====*/}
+                      {!customers.some(
+                        (c) =>
+                          c.name.toLowerCase() === s.customerName.toLowerCase()
+                      ) && (
+                        <Button
+                          variant="success"
+                          size="sm"
+                          onClick={() => {
+                            setCurrentCustomer({ name: s.customerName });
+                            setCurrentSaleId(s._id);
+                            setShowAddCustomerModal(true);
+                          }}
+                        >
+                          <FaPlus /> {/* or your add icon */}
+                        </Button>
+                      )}
+                      {/* =====   ACTION - EDIT BUTTON  =====*/}
+                      <Button
+                        variant="link"
+                        size="sm"
+                        onClick={() => handleAddEditModal(s)}
+                      >
+                        <FaEdit color="orange" />
+                      </Button>
+                      {/* =====   ACTION - DELETE BUTTON  =====*/}
+                      <Button
+                        variant="link"
+                        size="sm"
+                        onClick={() => handleDeleteClick(s)}
+                      >
+                        <FaTrash color="red" />
+                      </Button>
+                    </td>
+                  </>
+                )}
+              </tr>
+            );
+          })}
         </tbody>
       </table>
 
@@ -1339,22 +1440,21 @@ function Sales() {
       </Modal>
 */}
 
-<AddEditCustomerModal
-  show={showAddCustomerModal}
-  onHide={() => setShowAddCustomerModal(false)}
-  fetchCustomers={fetchCustomers}
-  fetchSales={fetchSales}
-  currentCustomer={currentCustomer}
-  setCurrentCustomer={setCurrentCustomer}
-  isEditing={false}
-  fromSale={true}
-  currentSaleId={currentSaleId}
-  setSales={setSales}
-  setCustomers={setCustomers}
-  setSuccessMessage={setSuccessMessage}
-  setShowSuccessModal={setShowSuccessModal}
-/>
-
+      <AddEditCustomerModal
+        show={showAddCustomerModal}
+        onHide={() => setShowAddCustomerModal(false)}
+        fetchCustomers={fetchCustomers}
+        fetchSales={fetchSales}
+        currentCustomer={currentCustomer}
+        setCurrentCustomer={setCurrentCustomer}
+        isEditing={false}
+        fromSale={true}
+        currentSaleId={currentSaleId}
+        setSales={setSales}
+        setCustomers={setCustomers}
+        setSuccessMessage={setSuccessMessage}
+        setShowSuccessModal={setShowSuccessModal}
+      />
 
       <Modal show={showSuccessModal} onHide={() => setShowSuccessModal(false)}>
         <Modal.Header closeButton>
