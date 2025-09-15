@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import axios from "axios";
 import { Modal, Button, Form, Alert } from "react-bootstrap";
 import { Typeahead } from "react-bootstrap-typeahead";
@@ -83,49 +83,50 @@ function Sales() {
   });
 
   // Build unique date pages
-  const datePages = [
+// ✅ Build unique date pages only when sales changes
+const datePages = useMemo(() => {
+  return [
     ...new Set(sales.map((s) => new Date(s.date).toDateString())),
   ].sort((a, b) => new Date(a) - new Date(b));
+}, [sales]);
 
-  const [currentPage, setCurrentPage] = useState(
-    datePages.length > 0 ? datePages.length - 1 : 0
-  );
-  // 🔹 Ensure we jump to the last page once sales are loaded
-  useEffect(() => {
-    if (datePages.length > 0) {
-      setCurrentPage(datePages.length - 1);
-    }
-  }, [datePages]);
+// ✅ State for current page
+const [currentPage, setCurrentPage] = useState(0);
 
-  // Compute visible sales once
-  const visibleSales = sales
+// ✅ Sync currentPage whenever datePages updates
+useEffect(() => {
+  if (datePages.length > 0) {
+    setCurrentPage(datePages.length - 1); // jump to last page
+  }
+}, [datePages]);
+
+// ✅ Compute visible sales
+const visibleSales = useMemo(() => {
+  return sales
     .filter((s) => {
       const saleDate = new Date(s.date);
 
-      // ✅ Range filter
+      // Range filter takes priority
       if (range.from && range.to) {
         return saleDate >= range.from && saleDate <= range.to;
       }
 
-      // ✅ Date pages filter
-      if (datePages && datePages.length > 0) {
+      // Otherwise use datePages
+      if (datePages.length > 0) {
         const currentDate = datePages[currentPage];
         if (currentDate) {
           return saleDate.toDateString() === currentDate;
         }
       }
 
-      return true; // no filters applied
+      return true;
     })
     .sort((a, b) => new Date(a.date) - new Date(b.date));
+}, [sales, range, datePages, currentPage]);
 
   // ===============================
   // LOAD SALES & CUSTOMERS
   // ===============================
-  // useEffect(() => {
-  //   fetchSales();
-  //   fetchCustomers();
-  // }, []);
 
   const fetchSales = async () => {
     try {
@@ -177,6 +178,50 @@ function Sales() {
       console.error("Error saving edits:", err);
     }
   };
+  // ===============================
+  // FOR SALES SUMMARY TABLE
+  // ===============================
+  const itemOrder = ["Refill (Slim 5gal)", "Refill (Round 5gal)", "Bottled Water (500mL)", "Bottled Water (1000mL)"];
+
+  const { summaryData, freeCount, grandTotal } = useMemo(() => {
+    const totals = {};
+    let free = 0;
+
+    visibleSales.forEach((s) => {
+      const type = s.item || s.type || "Other";
+      const qty = Number(s.quantity) || 0;
+      const amount = Number(s.totalAmount ?? s.amount) || 0;
+
+      if (s.paymentMethod === "Free") {
+        free += qty; // count free quantity
+        return; // skip adding to totals
+      }
+
+      if (!totals[type]) totals[type] = { type, quantity: 0, amount: 0 };
+      totals[type].quantity += qty;
+      totals[type].amount += amount;
+    });
+
+    const arr = Object.values(totals);
+
+    // sort by custom order, then alphabetically for "rest"
+    arr.sort((a, b) => {
+      const ai = itemOrder.indexOf(a.type);
+      const bi = itemOrder.indexOf(b.type);
+      if (ai === -1 && bi === -1) return a.type.localeCompare(b.type);
+      if (ai === -1) return 1;
+      if (bi === -1) return -1;
+      return ai - bi;
+    });
+
+    const totalAmount = arr.reduce((sum, r) => sum + r.amount, 0);
+
+    return { summaryData: arr, freeCount: free, grandTotal: totalAmount };
+  }, [visibleSales]);
+
+  // ===============================
+  //    useEffect
+  // ===============================
 
   useEffect(() => {
     fetchSales();
@@ -191,22 +236,6 @@ function Sales() {
   // ===============================
   // HANDLERS
   // ===============================
-
-  // const applyDateFilter = () => {
-  //   if (!startDate || !endDate) return;
-  //   const filtered = sales.filter((s) => {
-  //     const saleDate = new Date(s.date);
-  //     return saleDate >= startDate && saleDate <= endDate;
-  //   });
-  //   //setFilteredSales(filtered);
-  // };
-
-  // const clearFilter = () => {
-  //   setStartDate(null);
-  //   setEndDate(null);
-  //   //setFilteredSales(sales);
-  // };
-
   const handleAddEditModal = (s = null) => {
     if (s) {
       //edit mode
@@ -427,7 +456,6 @@ function Sales() {
   return (
     <div style={{ padding: "20px" }}>
       <h2>Sales</h2>
-
       {/* Top Controls Bar */}
       <div className="d-flex flex-column flex-md-row justify-content-between align-items-center mb-3">
         {/* LEFT SIDE - Action Buttons */}
@@ -660,17 +688,63 @@ function Sales() {
           )}
         </div>
       </div>
-<Button
-  variant="outline-primary"
-  className="ms-2 mt-2 mt-md-0"
-  onClick={() => console.log(visibleSales)}
->
-  Test Visible Records
-</Button>
+
+      <Button
+        variant="outline-primary"
+        className="ms-2 mt-2 mt-md-0"
+        onClick={() => console.log(visibleSales)}
+      >
+        Test Visible Records
+      </Button>
+
       {/* ////////////////////////////// */}
-      {/* /////       TABLE        ///// */}
+      {/* /////       TABLES       ///// */}
       {/* ////////////////////////////// */}
 
+      {/* ////////////////////////////////// */}
+      {/* ///    SALES SUMMARY TABLE     /// */}
+      {/* ////////////////////////////////// */}
+      <table className="table table-sm mb-3">
+        <thead>
+          <tr>
+            <th>Item</th>
+            <th className="text-end">Quantity</th>
+            <th className="text-end">Amount</th>
+          </tr>
+        </thead>
+        <tbody>
+          {summaryData.map((row) => (
+            <tr key={row.type}>
+              <td>{row.type}</td>
+              <td className="text-end">{row.quantity}</td>
+              <td className="text-end">
+                ₱{row.amount.toLocaleString("en-PH")}
+              </td>
+            </tr>
+          ))}
+
+          {freeCount > 0 && (
+            <tr>
+              <td>Free</td>
+              <td className="text-end">{freeCount}</td>
+              <td className="text-end">—</td>
+            </tr>
+          )}
+
+          <tr>
+            <td colSpan={2} className="text-end fw-bold">
+              Total Sales:
+            </td>
+            <td className="text-end fw-bold">
+              ₱{grandTotal.toLocaleString("en-PH")}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      {/* ////////////////////////////////// */}
+      {/* ///    SALES RECORDS TABLE     /// */}
+      {/* ////////////////////////////////// */}
       <table className="table table-hover mt-3">
         <thead>
           <tr>
@@ -758,7 +832,6 @@ function Sales() {
             const isChecked = selectedSalesIds.includes(s._id);
 
             return (
-              
               <tr key={s._id}>
                 {/* =====   CHECK BOXES   =====*/}
                 {editMode && (
