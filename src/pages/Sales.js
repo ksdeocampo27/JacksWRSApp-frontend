@@ -83,46 +83,46 @@ function Sales() {
   });
 
   // Build unique date pages
-// ✅ Build unique date pages only when sales changes
-const datePages = useMemo(() => {
-  return [
-    ...new Set(sales.map((s) => new Date(s.date).toDateString())),
-  ].sort((a, b) => new Date(a) - new Date(b));
-}, [sales]);
+  // ✅ Build unique date pages only when sales changes
+  const datePages = useMemo(() => {
+    return [...new Set(sales.map((s) => new Date(s.date).toDateString()))].sort(
+      (a, b) => new Date(a) - new Date(b)
+    );
+  }, [sales]);
 
-// ✅ State for current page
-const [currentPage, setCurrentPage] = useState(0);
+  // ✅ State for current page
+  const [currentPage, setCurrentPage] = useState(0);
 
-// ✅ Sync currentPage whenever datePages updates
-useEffect(() => {
-  if (datePages.length > 0) {
-    setCurrentPage(datePages.length - 1); // jump to last page
-  }
-}, [datePages]);
+  // ✅ Sync currentPage whenever datePages updates
+  useEffect(() => {
+    if (datePages.length > 0) {
+      setCurrentPage(datePages.length - 1); // jump to last page
+    }
+  }, [datePages]);
 
-// ✅ Compute visible sales
-const visibleSales = useMemo(() => {
-  return sales
-    .filter((s) => {
-      const saleDate = new Date(s.date);
+  // ✅ Compute visible sales
+  const visibleSales = useMemo(() => {
+    return sales
+      .filter((s) => {
+        const saleDate = new Date(s.date);
 
-      // Range filter takes priority
-      if (range.from && range.to) {
-        return saleDate >= range.from && saleDate <= range.to;
-      }
-
-      // Otherwise use datePages
-      if (datePages.length > 0) {
-        const currentDate = datePages[currentPage];
-        if (currentDate) {
-          return saleDate.toDateString() === currentDate;
+        // Range filter takes priority
+        if (range.from && range.to) {
+          return saleDate >= range.from && saleDate <= range.to;
         }
-      }
 
-      return true;
-    })
-    .sort((a, b) => new Date(a.date) - new Date(b.date));
-}, [sales, range, datePages, currentPage]);
+        // Otherwise use datePages
+        if (datePages.length > 0) {
+          const currentDate = datePages[currentPage];
+          if (currentDate) {
+            return saleDate.toDateString() === currentDate;
+          }
+        }
+
+        return true;
+      })
+      .sort((a, b) => new Date(a.date) - new Date(b.date));
+  }, [sales, range, datePages, currentPage]);
 
   // ===============================
   // LOAD SALES & CUSTOMERS
@@ -181,7 +181,12 @@ const visibleSales = useMemo(() => {
   // ===============================
   // FOR SALES SUMMARY TABLE
   // ===============================
-  const itemOrder = ["Refill (Slim 5gal)", "Refill (Round 5gal)", "Bottled Water (500mL)", "Bottled Water (1000mL)"];
+  const itemOrder = [
+    "Refill (Slim 5gal)",
+    "Refill (Round 5gal)",
+    "Bottled Water (500mL)",
+    "Bottled Water (1000mL)",
+  ];
 
   const { summaryData, freeCount, grandTotal } = useMemo(() => {
     const totals = {};
@@ -246,6 +251,7 @@ const visibleSales = useMemo(() => {
           ? new Date(s.date).toISOString().split("T")[0]
           : new Date().toISOString().split("T")[0],
       });
+      setIsEditing(true);
     } else {
       //add mode
       setCurrentSale({
@@ -528,6 +534,7 @@ const visibleSales = useMemo(() => {
             </Alert>
           )}
 
+          {/* Save Changes Button*/}
           {editMode && (
             <button onClick={handleSaveClick} className="btn btn-warning">
               Save Changes
@@ -1358,6 +1365,7 @@ const visibleSales = useMemo(() => {
         fetchSales={fetchSales}
         customers={customers}
         containers={containers}
+        setSales={sales}
       />
 
       {/* Add New Customer Modal 

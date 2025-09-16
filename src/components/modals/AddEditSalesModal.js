@@ -33,34 +33,34 @@ export default function AddEditSalesModal({
         customerContainerQty: currentSale.customerContainerQty || 0,
       };
 
-      if (isEditing) {
+      if (currentSale._id) {
+        // 🟢 Edit Existing Recprd
         await axios.put(
           `${process.env.REACT_APP_API_URL}/api/sales/${currentSale._id}`,
           saleToSave
         );
       } else {
+        // 🟢 Create New Record
         await axios.post(
           `${process.env.REACT_APP_API_URL}/api/sales`,
           saleToSave
         );
       }
 
-          // 3. Fetch the fully populated updated sale
-      const populatedSaleRes = await axios.get(
-        `${process.env.REACT_APP_API_URL}/api/sales/${currentSaleId}`
-      );
-      const populatedSale = populatedSaleRes.data;
+      // 3. Fetch the fully populated updated sale
+      // const populatedSaleRes = await axios.get(
+      //   `${process.env.REACT_APP_API_URL}/api/sales/${currentSale._id}`
+      // );
+      // const populatedSale = populatedSaleRes.data;
 
       // 4. Update sales state locally to reflect immediately
-      setSales((prevSales) =>
-        prevSales.map((s) => (s._id === populatedSale._id ? populatedSale : s))
-      );
+      // setSales((prevSales) =>
+      //   prevSales.map((s) => (s._id === populatedSale._id ? populatedSale : s))
+      // );
       // 🔁 Re-fetch inventory to update name link
-      fetchSales();
-
+      await fetchSales();
 
       onHide();
-      
     } catch (err) {
       console.error(err);
     }
