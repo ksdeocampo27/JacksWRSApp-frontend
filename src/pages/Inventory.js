@@ -9,6 +9,7 @@ function Inventory() {
   const [inventory, setInventory] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [showMultiAddModal, setShowMultiAddModal] = useState(false);
+  const [showContainerID, setShowContainerID] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteTargetId, setDeleteTargetId] = useState(null);
   const [currentItem, setCurrentItem] = useState({
@@ -44,7 +45,61 @@ function Inventory() {
   const totalPages = Math.ceil(filteredInventory.length / recordsPerPage);
 
   // ================================
-  // FETCH INVENTORY
+  //        CONTAINER STATUS
+  // ================================
+  const [sales, setSales] = useState([]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const invRes = await axios.get(
+          `${process.env.REACT_APP_API_URL}/api/inventory`
+        );
+        setInventory(invRes.data);
+
+        const salesRes = await axios.get(
+          `${process.env.REACT_APP_API_URL}/api/sales`
+        );
+        setSales(salesRes.data);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    fetchData();
+  }, []);
+
+  const getLastTransactionDate = (sales, containerId) => {
+    const containerSales = sales.filter((s) =>
+      s.containerIds?.some((c) => c === containerId || c._id === containerId)
+    );
+
+    if (!containerSales.length) return null;
+
+    const lastRecord = containerSales.reduce((latest, r) => {
+      return new Date(r.date) > new Date(latest.date) ? r : latest;
+    });
+    return lastRecord.date;
+  };
+
+  const getStatusFromDate = (dateString) => {
+    if (!dateString) {
+      return { label: "No Record", color: "secondary" };
+    }
+
+    const lastDate = new Date(dateString);
+    const now = new Date();
+    const diffDays = Math.floor((now - lastDate) / (1000 * 60 * 60 * 24));
+
+    if (diffDays <= 14) {
+      return { label: `Active (${diffDays}d ago)`, color: "success" };
+    }
+    if (diffDays <= 30) {
+      return { label: `At Risk (${diffDays}d ago)`, color: "warning" };
+    }
+    return { label: `Inactive (${diffDays}d ago)`, color: "danger" };
+  };
+  // ================================
+  //        FETCH INVENTORY
   // ================================
   useEffect(() => {
     fetchInventory();
@@ -314,8 +369,8 @@ function Inventory() {
         </div>
       </div>
 
-{/* TABLE */}
-      <table className="table mt-3">
+      {/* TABLE */}
+      <table className="table table-hover mt-3">
         {/*Table Head*/}
         <thead>
           <tr>
@@ -338,7 +393,7 @@ function Inventory() {
                 />
               </th>
             )}
-            <th>_ID</th>
+            {showContainerID && <th>_ID</th>}
             <th>ID</th>
             <th>Name</th>
             <th>Type</th>
@@ -381,13 +436,22 @@ function Inventory() {
                     />
                   </td>
                 )}
-                <td>{inv._id}</td>
+                {showContainerID && <td>{inv._id}</td>}
                 <td>{inv.id}</td>
                 <td>
                   <Link to={`/inventory/${inv._id}`}>{inv.name}</Link>
                 </td>
                 <td>{inv.type}</td>
-                <td>{inv.status}</td>
+                <td>
+                  {(() => {
+                    const lastDate = getLastTransactionDate(
+                      sales,
+                      inv._id || inv.id
+                    );
+                    const { label, color } = getStatusFromDate(lastDate);
+                    return <span className={`badge bg-${color}`}>{label}</span>;
+                  })()}
+                </td>
                 <td>
                   {inv.dateOfPurchase
                     ? new Date(inv.dateOfPurchase).toLocaleDateString("en-US", {
