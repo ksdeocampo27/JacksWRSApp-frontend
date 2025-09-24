@@ -54,6 +54,62 @@ function Customers() {
   };
 
   // ================================
+  //        CUSTOMER STATUS
+  // ================================
+  const [sales, setSales] = useState([]);
+
+useEffect(() => {
+  const fetchData = async () => {
+    try {
+      const custRes = await axios.get(`${process.env.REACT_APP_API_URL}/api/customers`);
+      setCustomers(custRes.data);
+
+      const salesRes = await axios.get(`${process.env.REACT_APP_API_URL}/api/sales`);
+      console.log("Sales from API:", salesRes.data); // 👀 log here
+      setSales(salesRes.data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+  fetchData();
+}, []);
+
+
+  const getCustomerStatusFromDate = (dateString) => {
+    if (!dateString) {
+      return { label: "Unknown", color: "secondary" };
+    }
+
+    const lastDate = new Date(dateString);
+    const now = new Date();
+    const diffDays = Math.floor((now - lastDate) / (1000 * 60 * 60 * 24));
+
+    if (diffDays <= 7) {
+      return { label: `Active (${diffDays}d ago)`, color: "success" };
+    }
+    if (diffDays <= 14) {
+      return { label: `At Risk (${diffDays}d ago)`, color: "warning" };
+    }
+    return { label: `Inactive (${diffDays}d ago)`, color: "danger" };
+  };
+
+const getCustomerLastTransactionDate = (sales, customerId) => {
+  const customerSales = sales.filter(
+    (sale) => sale.customerId && sale.customerId._id === customerId
+  );
+
+  if (customerSales.length === 0) return null;
+
+  const latestSale = customerSales.reduce((latest, sale) =>
+    new Date(sale.date) > new Date(latest.date) ? sale : latest
+  );
+
+  return new Date(latestSale.date);
+};
+
+
+
+  // ================================
   //            HANDLERS
   // ================================
   const handleAddEditModal = (c = null) => {
@@ -228,13 +284,13 @@ function Customers() {
       {/* ////////////////////////// */}
       {/* /////     Search Bar ///// */}
       {/* ////////////////////////// */}
-<Form.Control
-  type="text"
-  placeholder="Search by name, phone, or nickname..."
-  className="my-3"
-  value={searchTerm}
-  onChange={(e) => setSearchTerm(e.target.value)}
-/>
+      <Form.Control
+        type="text"
+        placeholder="Search by name, phone, or nickname..."
+        className="my-3"
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+      />
 
       {/* Customers Table */}
       <table className="table mt-3">
@@ -258,6 +314,7 @@ function Customers() {
               </th>
             )}
             <th>Name</th>
+            <th>Status</th>
             <th>Nickname</th>
             <th>Phone</th>
             <th>Address</th>
@@ -278,15 +335,15 @@ function Customers() {
         {/*Table Body or Records*/}
         <tbody>
           {customers
-          .filter((c) => {
-      if (!searchTerm.trim()) return true; // 🔄 if empty, show all
-      const keyword = searchTerm.toLowerCase();
-      return (
-        c.name.toLowerCase().includes(keyword) ||
-        (c.nickname && c.nickname.toLowerCase().includes(keyword)) ||
-        (c.phone && c.phone.toLowerCase().includes(keyword))
-      );
-    })
+            .filter((c) => {
+              if (!searchTerm.trim()) return true; // 🔄 if empty, show all
+              const keyword = searchTerm.toLowerCase();
+              return (
+                c.name.toLowerCase().includes(keyword) ||
+                (c.nickname && c.nickname.toLowerCase().includes(keyword)) ||
+                (c.phone && c.phone.toLowerCase().includes(keyword))
+              );
+            })
             .sort((a, b) => a.name.localeCompare(b.name)) // 🔽 Sorts by name alphabetically
             .map((c) => {
               const isChecked = selectedIds.includes(c._id);
@@ -317,6 +374,21 @@ function Customers() {
                   )}
                   <td>
                     <Link to={`/customers/${c._id}/profile`}>{c.name}</Link>
+                  </td>
+                  {/*=========    STATUS    ========= */}
+                  <td>
+                    {(() => {
+                      const lastDate = getCustomerLastTransactionDate(
+                        sales,
+                        c._id
+                      );
+                      //console.log(lastDate)
+                      const { label, color } =
+                        getCustomerStatusFromDate(lastDate);
+                      return (
+                        <span className={`badge bg-${color}`}>{label}</span>
+                      );
+                    })()}
                   </td>
                   <td>{c.nickname}</td>
                   <td>{c.phone}</td>
