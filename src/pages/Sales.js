@@ -44,7 +44,6 @@ function Sales() {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
 
-  const [range, setRange] = useState({ from: undefined, to: undefined });
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
@@ -82,46 +81,65 @@ function Sales() {
     remarks: "",
   });
 
-  // ✅ Build unique date pages only when sales changes
+  // ===============================
+  // FILTER RECORDS
+  // ===============================
+  // 🔎 Search state
+  const [searchTerm, setSearchTerm] = useState("");
+
+  // 📅 Range filter state
+  const [range, setRange] = useState({ from: undefined, to: undefined });
+
+  // 📅 Build unique date pages
   const datePages = useMemo(() => {
     return [...new Set(sales.map((s) => new Date(s.date).toDateString()))].sort(
       (a, b) => new Date(a) - new Date(b)
     );
   }, [sales]);
 
-  // ✅ State for current page
+  // 📅 Current page index
   const [currentPage, setCurrentPage] = useState(0);
 
-  // ✅ Sync currentPage whenever datePages updates
+  // 📅 "All" toggle
+  const [showAll, setShowAll] = useState(false);
+
+  // 📅 On mount/update, default to today or last page
   useEffect(() => {
     if (datePages.length > 0) {
-      //
-      // setCurrentPage(datePages.length - 1); // jump to last page
-  
-      //
       const today = new Date().toDateString();
       const idx = datePages.findIndex((d) => d === today);
-
       if (idx !== -1) {
         setCurrentPage(idx);
       } else {
-        setCurrentPage(datePages.length - 1); // fallback to last available
+        setCurrentPage(datePages.length - 1);
       }
     }
   }, [datePages]);
 
-  // ✅ Compute visible sales
+  // 🧮 Compute visible sales
   const visibleSales = useMemo(() => {
+    // 🔎 If searching → bypass pagination/range
+    if (searchTerm.trim()) {
+      return sales.filter(
+        (s) =>
+          s.item?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          s.customerName?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    // 📅 If "All" is active → return everything
+    if (showAll) return sales;
+
     return sales
       .filter((s) => {
         const saleDate = new Date(s.date);
 
-        // Range filter takes priority
+        // ✅ Range filter
         if (range.from && range.to) {
           return saleDate >= range.from && saleDate <= range.to;
         }
 
-        // Otherwise use datePages
+        // ✅ Pagination filter
         if (datePages.length > 0) {
           const currentDate = datePages[currentPage];
           if (currentDate) {
@@ -132,7 +150,7 @@ function Sales() {
         return true;
       })
       .sort((a, b) => new Date(a.date) - new Date(b.date));
-  }, [sales, range, datePages, currentPage]);
+  }, [sales, range, datePages, currentPage, searchTerm, showAll]);
 
   // ===============================
   // LOAD SALES & CUSTOMERS
@@ -188,6 +206,7 @@ function Sales() {
       console.error("Error saving edits:", err);
     }
   };
+
   // ===============================
   // FOR SALES SUMMARY TABLE
   // ===============================
@@ -552,10 +571,30 @@ function Sales() {
           )}
         </div>
 
-        {/* RIGHT SIDE - Page + Date Filter 
-        <div className="d-flex align-items-center">
-          //Date Pages Controls
-          <div className="d-flex align-items-center me-3">
+        {/* RIGHT SIDE - Search + Controls */}
+        <div className="d-flex flex-column align-items-end">
+          {/* 🔎 Search bar on top */}
+          <Form.Control
+            type="text"
+            placeholder="Search by customer or item..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="mb-2"
+            style={{ maxWidth: "250px" }}
+          />
+
+          {/* Controls row */}
+          <div className="d-flex align-items-center">
+            {/* All Button */}
+            <Button
+              variant={showAll ? "primary" : "outline-primary"}
+              onClick={() => setShowAll(!showAll)}
+              className="me-2"
+            >
+              {showAll ? "Back to Pages" : "All"}
+            </Button>
+
+            {/* Previous Button */}
             <Button
               variant="secondary"
               disabled={currentPage === 0}
@@ -565,154 +604,68 @@ function Sales() {
               Previous
             </Button>
 
-            //insert date filter date here instead of this span
-            <span>
-              {datePages[currentPage]
-                ? new Date(datePages[currentPage]).toLocaleDateString()
-                : "No Date"}
-            </span>
+            {/* Date Range Picker */}
+            <div style={{ position: "relative" }} className="me-2">
+              <Button
+                variant="outline-secondary"
+                onClick={() => setShowDatePicker(!showDatePicker)}
+              >
+                {range?.from && range?.to
+                  ? `Filtered: ${range.from.toLocaleDateString()} - ${range.to.toLocaleDateString()}`
+                  : datePages[currentPage]
+                  ? new Date(datePages[currentPage]).toLocaleDateString()
+                  : "No Date"}
+              </Button>
 
+              {showDatePicker && (
+                <div
+                  style={{
+                    position: "absolute",
+                    zIndex: 1000,
+                    top: "100%",
+                    right: 0,
+                    marginTop: "5px",
+                    background: "white",
+                    boxShadow: "0 4px 8px rgba(0,0,0,0.1)",
+                    borderRadius: "6px",
+                    padding: "8px",
+                  }}
+                >
+                  <DayPicker
+                    mode="range"
+                    selected={range}
+                    onSelect={(range) => {
+                      if (range) setRange(range);
+                    }}
+                    numberOfMonths={1}
+                    defaultMonth={range?.from || undefined}
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Next Button */}
             <Button
               variant="secondary"
               disabled={currentPage === datePages.length - 1}
               onClick={() => setCurrentPage(currentPage + 1)}
-              className="ms-2"
             >
               Next
             </Button>
-          </div>
 
-          //Date Filter
-          <div style={{ position: "relative" }}>
-            <Button
-              variant="outline-secondary"
-              onClick={() => setShowDatePicker(!showDatePicker)}
-            >
-              {range?.from && range?.to
-                ? `Filtered: ${range.from.toLocaleDateString()} - ${range.to.toLocaleDateString()}`
-                : "Filter by Date"}
-            </Button>
-
-            {showDatePicker && (
-              <div
-                style={{
-                  position: "absolute",
-                  zIndex: 1000,
-                  top: "100%",
-                  right: 0,
-                  marginTop: "5px",
-                  background: "white",
-                  boxShadow: "0 4px 8px rgba(0,0,0,0.1)",
-                  borderRadius: "6px",
-                  padding: "8px",
-                }}
-              >
-                <DayPicker
-                  mode="range"
-                  selected={range}
-                  onSelect={(range) => {
-                    if (range) setRange(range);
-                  }}
-                  numberOfMonths={1}
-                  defaultMonth={range?.from || undefined}
-                />
-              </div>
-            )}
-
-            {(range.from || range.to) && (
+            {/* Clear Filter */}
+            {(range?.from || range?.to) && (
               <Button
                 variant="outline-danger"
-                className="ms-2 mt-2 mt-md-0"
+                className="ms-2"
                 onClick={() => setRange({ from: undefined, to: undefined })}
               >
                 Clear
               </Button>
             )}
           </div>
-        </div>*/}
-
-        {/* Date Navigation with Range Picker */}
-        <div className="d-flex align-items-center">
-          {/* Previous Button */}
-          <Button
-            variant="secondary"
-            disabled={currentPage === 0}
-            onClick={() => setCurrentPage(currentPage - 1)}
-            className="me-2"
-          >
-            Previous
-          </Button>
-
-          {/* Current Date Label (opens range picker) */}
-          <div style={{ position: "relative" }}>
-            <Button
-              variant="outline-secondary"
-              onClick={() => setShowDatePicker(!showDatePicker)}
-            >
-              {range?.from && range?.to
-                ? `Filtered: ${range.from.toLocaleDateString()} - ${range.to.toLocaleDateString()}`
-                : datePages[currentPage]
-                ? new Date(datePages[currentPage]).toLocaleDateString()
-                : "No Date"}
-            </Button>
-
-            {showDatePicker && (
-              <div
-                style={{
-                  position: "absolute",
-                  zIndex: 1000,
-                  top: "100%",
-                  right: 0,
-                  marginTop: "5px",
-                  background: "white",
-                  boxShadow: "0 4px 8px rgba(0,0,0,0.1)",
-                  borderRadius: "6px",
-                  padding: "8px",
-                }}
-              >
-                <DayPicker
-                  mode="range"
-                  selected={range}
-                  onSelect={(range) => {
-                    if (range) setRange(range);
-                  }}
-                  numberOfMonths={1}
-                  defaultMonth={range?.from || undefined}
-                />
-              </div>
-            )}
-          </div>
-
-          {/* Next Button */}
-          <Button
-            variant="secondary"
-            disabled={currentPage === datePages.length - 1}
-            onClick={() => setCurrentPage(currentPage + 1)}
-            className="ms-2"
-          >
-            Next
-          </Button>
-
-          {/* Clear Filter Button */}
-          {(range?.from || range?.to) && (
-            <Button
-              variant="outline-danger"
-              className="ms-2"
-              onClick={() => setRange({ from: undefined, to: undefined })}
-            >
-              Clear
-            </Button>
-          )}
         </div>
       </div>
-
-      <Button
-        variant="outline-primary"
-        className="ms-2 mt-2 mt-md-0"
-        onClick={() => console.log(visibleSales)}
-      >
-        Test Visible Records
-      </Button>
 
       {/* ////////////////////////////// */}
       {/* /////       TABLES       ///// */}
