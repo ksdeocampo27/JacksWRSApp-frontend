@@ -82,7 +82,6 @@ function Sales() {
     remarks: "",
   });
 
-  // Build unique date pages
   // ✅ Build unique date pages only when sales changes
   const datePages = useMemo(() => {
     return [...new Set(sales.map((s) => new Date(s.date).toDateString()))].sort(
@@ -96,7 +95,18 @@ function Sales() {
   // ✅ Sync currentPage whenever datePages updates
   useEffect(() => {
     if (datePages.length > 0) {
-      setCurrentPage(datePages.length - 1); // jump to last page
+      //
+      // setCurrentPage(datePages.length - 1); // jump to last page
+  
+      //
+      const today = new Date().toDateString();
+      const idx = datePages.findIndex((d) => d === today);
+
+      if (idx !== -1) {
+        setCurrentPage(idx);
+      } else {
+        setCurrentPage(datePages.length - 1); // fallback to last available
+      }
     }
   }, [datePages]);
 

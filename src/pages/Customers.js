@@ -36,6 +36,7 @@ function Customers() {
   });
   const [isEditing, setIsEditing] = useState(false);
   const [customerToDelete, setCustomerToDelete] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
     fetchCustomers();
@@ -160,7 +161,7 @@ function Customers() {
   };
 
   // ===========================
-  // COMPONENT RENDER
+  //          RENDER
   // ===========================
   return (
     <div style={{ padding: "20px" }}>
@@ -224,6 +225,16 @@ function Customers() {
           )}
         </>
       )}
+      {/* ////////////////////////// */}
+      {/* /////     Search Bar ///// */}
+      {/* ////////////////////////// */}
+<Form.Control
+  type="text"
+  placeholder="Search by name, phone, or nickname..."
+  className="my-3"
+  value={searchTerm}
+  onChange={(e) => setSearchTerm(e.target.value)}
+/>
 
       {/* Customers Table */}
       <table className="table mt-3">
@@ -267,6 +278,15 @@ function Customers() {
         {/*Table Body or Records*/}
         <tbody>
           {customers
+          .filter((c) => {
+      if (!searchTerm.trim()) return true; // 🔄 if empty, show all
+      const keyword = searchTerm.toLowerCase();
+      return (
+        c.name.toLowerCase().includes(keyword) ||
+        (c.nickname && c.nickname.toLowerCase().includes(keyword)) ||
+        (c.phone && c.phone.toLowerCase().includes(keyword))
+      );
+    })
             .sort((a, b) => a.name.localeCompare(b.name)) // 🔽 Sorts by name alphabetically
             .map((c) => {
               const isChecked = selectedIds.includes(c._id);
